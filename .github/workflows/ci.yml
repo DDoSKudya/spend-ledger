@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [bff, auth, ledger, export]
+        service: [bff, auth, export]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -23,6 +23,43 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: |
           uv sync --dev
+          uv run pytest
+          uv run ruff check app tests --config ../../ruff.toml
+          uv run ruff format --check app tests --config ../../ruff.toml
+
+  ledger:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: ledger_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d ledger_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install, migrate, test
+        working-directory: services/ledger
+        env:
+          LEDGER_DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/ledger_test
+          LEDGER_INTEGRATION: "1"
+          APP_ENV: test
+        run: |
+          uv sync --dev
+          uv run alembic upgrade head
           uv run pytest
           uv run ruff check app tests --config ../../ruff.toml
           uv run ruff format --check app tests --config ../../ruff.toml

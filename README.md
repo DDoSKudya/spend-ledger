@@ -60,7 +60,7 @@ make sync
 ```
 
 Creates `.venv/` at the project root and installs per-service envs for Docker/CI lockfiles.
-Select interpreter once: **`.venv/bin/python`** (already set in `.vscode/settings.json`).
+Select interpreter: **`.venv/bin/python`** (Cursor/VS Code: Python: Select Interpreter).
 
 Install git hooks (ruff lint + format on commit):
 
@@ -71,7 +71,7 @@ make pre-commit-install
 `pyrightconfig.json` maps each `services/*` folder to the correct `app` package — no manual
 interpreter switching when editing different services.
 
-Optional: open **`spend-ledger.code-workspace`** in Cursor for a multi-root layout
+Optional: open **`spend-ledger.code-workspace`** locally for a multi-root layout
 (bff / auth / ledger / export / frontend as separate sidebar roots).
 
 Run a service locally:
@@ -87,10 +87,14 @@ PostgreSQL must be reachable (e.g. `make up`).
 
 ```bash
 make test
+make verify              # test + API smoke (nginx → BFF → ledger)
+make test-ledger-integration   # ledger CRUD tests (isolated Postgres :5433)
 make pre-commit
 make lock
-make migrate-ledger
+make migrate-ledger        # from host (needs Postgres on :5432)
 ```
+
+`make up` waits for healthchecks and runs `alembic upgrade head` in the ledger container.
 
 Stage 0 checklist: `.plan/stage0-status.md` (local, gitignored with `.plan/`).
 

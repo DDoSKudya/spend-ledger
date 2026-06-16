@@ -15,6 +15,13 @@ services:
       - ./services/bff/tests:/app/tests
     environment:
       LOG_LEVEL: debug
+      DEV_USER_ID: ${DEV_USER_ID:-00000000-0000-4000-8000-000000000001}
+    command:
+      [
+        "sh",
+        "-c",
+        "uv run uvicorn app.main:app --host 0.0.0.0 --port $$PORT --reload",
+      ]
 
   auth-service:
     volumes:
@@ -22,8 +29,24 @@ services:
       - ./services/auth/tests:/app/tests
 
   ledger-service:
+    ports:
+      - "8002:8002"
     volumes:
       - ./services/ledger/app:/app/app
       - ./services/ledger/tests:/app/tests
+      - ./services/ledger/alembic:/app/alembic
+      - ./services/ledger/alembic.ini:/app/alembic.ini
     environment:
       SQLALCHEMY_ECHO: "true"
+      PROFILE_REQUESTS: "true"
+      DEV_USER_ID: ${DEV_USER_ID:-00000000-0000-4000-8000-000000000001}
+    command:
+      [
+        "sh",
+        "-c",
+        "uv run uvicorn app.main:app --host 0.0.0.0 --port $$PORT --reload",
+      ]
+
+  postgres-ledger:
+    ports:
+      - "5432:5432"

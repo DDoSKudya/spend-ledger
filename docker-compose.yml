@@ -34,6 +34,7 @@ services:
       LEDGER_SERVICE_URL: ${LEDGER_SERVICE_URL:-http://ledger-service:8002}
       EXPORT_SERVICE_URL: ${EXPORT_SERVICE_URL:-http://export-api:8003}
       JWT_SECRET: ${JWT_SECRET:-change_me}
+      DEV_USER_ID: ${DEV_USER_ID:-00000000-0000-4000-8000-000000000001}
       PORT: ${BFF_PORT:-8000}
     depends_on:
       auth-service:
@@ -95,6 +96,7 @@ services:
       LEDGER_DATABASE_URL: ${LEDGER_DATABASE_URL:-postgresql+asyncpg://spend_ledger:change_me_ledger@postgres-ledger:5432/ledger_db}
       SQLALCHEMY_ECHO: ${SQLALCHEMY_ECHO:-false}
       PROFILE_REQUESTS: ${PROFILE_REQUESTS:-false}
+      DEV_USER_ID: ${DEV_USER_ID:-00000000-0000-4000-8000-000000000001}
       PORT: ${LEDGER_PORT:-8002}
     depends_on:
       postgres-ledger:
