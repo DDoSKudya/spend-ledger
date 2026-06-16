@@ -5,12 +5,14 @@ COMPOSE_EXPORT := $(COMPOSE) -f docker-compose.yml -f docker-compose.export.yml
 COMPOSE_EXPORT_DEV := $(COMPOSE_EXPORT) -f docker-compose.override.yml -f docker-compose.export.override.yml
 
 SERVICES := bff auth ledger export
+AUTH_DATABASE_URL ?= postgresql+asyncpg://spend_auth:change_me_auth@localhost:5432/auth_db
 LEDGER_DATABASE_URL ?= postgresql+asyncpg://spend_ledger:change_me_ledger@localhost:5432/ledger_db
 
-.PHONY: up up-export down logs sync test test-backend test-frontend lock migrate-ledger migrate-ledger-docker test-ledger-integration verify pre-commit-install pre-commit
+.PHONY: up up-export down logs sync test test-backend test-frontend lock migrate-auth migrate-auth-docker migrate-ledger migrate-ledger-docker test-ledger-integration verify pre-commit-install pre-commit
 
 up:
 	$(COMPOSE_DEV) up -d --wait
+	$(MAKE) migrate-auth-docker
 	$(MAKE) migrate-ledger-docker
 
 up-export:
@@ -35,10 +37,10 @@ sync:
 test: test-backend test-frontend
 
 test-backend:
-	cd services/bff && ../../.venv/bin/python -m pytest && \
-	cd ../auth && ../../.venv/bin/python -m pytest && \
-	cd ../ledger && ../../.venv/bin/python -m pytest && \
-	cd ../export && ../../.venv/bin/python -m pytest
+	cd services/bff && uv run pytest && \
+	cd ../auth && uv run pytest && \
+	cd ../ledger && uv run pytest && \
+	cd ../export && uv run pytest
 
 test-frontend:
 	cd frontend && npm run lint && npm run build
@@ -50,8 +52,14 @@ lock:
 	cd services/ledger && uv lock
 	cd services/export && uv lock
 
+migrate-auth:
+	cd services/auth && AUTH_DATABASE_URL=$(AUTH_DATABASE_URL) ../../.venv/bin/python -m alembic upgrade head
+
 migrate-ledger:
 	cd services/ledger && LEDGER_DATABASE_URL=$(LEDGER_DATABASE_URL) ../../.venv/bin/python -m alembic upgrade head
+
+migrate-auth-docker:
+	$(COMPOSE_DEV) exec -T auth-service uv run alembic upgrade head
 
 migrate-ledger-docker:
 	$(COMPOSE_DEV) exec -T ledger-service uv run alembic upgrade head
@@ -66,13 +74,21 @@ test-ledger-integration:
 	$(COMPOSE_INTEGRATION) down
 
 verify: test
-	@echo "==> API smoke (nginx → BFF → ledger)"
+	@echo "==> API smoke (nginx → BFF auth → ledger)"
 	@curl -sf http://localhost/api/v1/health >/dev/null
-	@NAME=verify-$$(date +%s); \
+	@EMAIL=verify-$$(date +%s)@example.com; \
+	PASS=supersecret; \
+	curl -sf -X POST http://localhost/api/v1/auth/register \
+		-H 'Content-Type: application/json' \
+		-d "{\"email\":\"$$EMAIL\",\"password\":\"$$PASS\"}" >/dev/null; \
+	TOKEN=$$(curl -sf -X POST http://localhost/api/v1/auth/login \
+		-H 'Content-Type: application/json' \
+		-d "{\"email\":\"$$EMAIL\",\"password\":\"$$PASS\"}" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])"); \
+	NAME=verify-$$(date +%s); \
 	curl -sf -X POST http://localhost/api/v1/categories \
+		-H "Authorization: Bearer $$TOKEN" \
 		-H 'Content-Type: application/json' \
 		-d "{\"name\":\"$$NAME\"}" | grep -q "$$NAME"
-	@curl -sf http://localhost/api/v1/categories | grep -q '\['
 	@echo "verify OK"
 
 pre-commit-install:

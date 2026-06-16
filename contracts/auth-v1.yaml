@@ -9,3 +9,33 @@ paths:
       responses:
         "200":
           description: OK
+  /internal/v1/auth/register:
+    post:
+      summary: Register user
+      responses:
+        "201":
+          description: Created
+  /internal/v1/auth/login:
+    post:
+      summary: Login and issue access/refresh tokens
+      responses:
+        "200":
+          description: OK
+  /internal/v1/auth/refresh:
+    post:
+      summary: Rotate refresh token and issue new access token
+      responses:
+        "200":
+          description: OK
+  /internal/v1/auth/logout:
+    post:
+      summary: Revoke refresh token
+      responses:
+        "204":
+          description: No Content
+  /internal/v1/auth/verify:
+    get:
+      summary: Verify access token
+      responses:
+        "200":
+          description: OK

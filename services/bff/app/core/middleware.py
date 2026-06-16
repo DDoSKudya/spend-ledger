@@ -2,12 +2,22 @@ import time
 from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
+import jwt
 import structlog
+from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
+
+from app.core.config import settings
 
 SERVICE_NAME = "bff"
+ACCESS_TOKEN_TYPE = "access"  # noqa: S105
+PROTECTED_PREFIXES = (
+    "/api/v1/categories",
+    "/api/v1/tags",
+    "/api/v1/expenses",
+)
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
@@ -16,12 +26,52 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        request_id = request.headers.get("X-Request-Id", str(uuid4()))
+        request_id = request.headers.get("X-Request-Id")
+        if request_id is None:
+            request_id = str(uuid4())
+
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(request_id=request_id, service=SERVICE_NAME)
         response = await call_next(request)
         response.headers["X-Request-Id"] = request_id
         return response
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        if not request.url.path.startswith(PROTECTED_PREFIXES):
+            return await call_next(request)
+
+        authorization = request.headers.get("Authorization")
+        if authorization is None or not authorization.startswith("Bearer "):
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Missing bearer token", "code": "unauthorized"},
+            )
+
+        token = authorization.split(" ", maxsplit=1)[1]
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+        except jwt.PyJWTError:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Invalid token", "code": "invalid_token"},
+            )
+
+        user_id = payload.get("sub")
+        token_type = payload.get("type")
+        if token_type != ACCESS_TOKEN_TYPE or not user_id:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Invalid token", "code": "invalid_token"},
+            )
+
+        request.state.user_id = user_id
+        return await call_next(request)
 
 
 class RequestLogMiddleware(BaseHTTPMiddleware):

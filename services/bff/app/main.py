@@ -6,7 +6,8 @@ from fastapi import APIRouter, FastAPI
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIdMiddleware, RequestLogMiddleware
+from app.core.middleware import AuthMiddleware, RequestIdMiddleware, RequestLogMiddleware
+from app.routes.auth import router as auth_router
 from app.routes.ledger import categories_router, expenses_router, tags_router
 
 api = APIRouter(prefix="/api/v1", tags=["health"])
@@ -28,7 +29,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(RequestLogMiddleware)
 app.add_middleware(RequestIdMiddleware)
+app.add_middleware(AuthMiddleware)
 app.include_router(api)
+app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(tags_router)
 app.include_router(expenses_router)
