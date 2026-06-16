@@ -1,0 +1,161 @@
+name: spend-ledger
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      bff:
+        condition: service_healthy
+    networks:
+      - spend-ledger-net
+
+  frontend:
+    build:
+      context: ./frontend
+    networks:
+      - spend-ledger-net
+
+  bff:
+    build:
+      context: ./services/bff
+      dockerfile: ../../infra/docker/python-service.Dockerfile
+      args:
+        PORT: "8000"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth-service:8001}
+      LEDGER_SERVICE_URL: ${LEDGER_SERVICE_URL:-http://ledger-service:8002}
+      EXPORT_SERVICE_URL: ${EXPORT_SERVICE_URL:-http://export-api:8003}
+      JWT_SECRET: ${JWT_SECRET:-change_me}
+      PORT: ${BFF_PORT:-8000}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['PORT']+'/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - spend-ledger-net
+
+  auth-service:
+    build:
+      context: ./services/auth
+      dockerfile: ../../infra/docker/python-service.Dockerfile
+      args:
+        PORT: "8001"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+asyncpg://spend_auth:change_me_auth@postgres-auth:5432/auth_db}
+      JWT_SECRET: ${JWT_SECRET:-change_me}
+      JWT_ACCESS_EXPIRE_MINUTES: ${JWT_ACCESS_EXPIRE_MINUTES:-15}
+      JWT_REFRESH_EXPIRE_DAYS: ${JWT_REFRESH_EXPIRE_DAYS:-7}
+      PORT: ${AUTH_PORT:-8001}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['PORT']+'/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - spend-ledger-net
+
+  ledger-service:
+    build:
+      context: ./services/ledger
+      dockerfile: ../../infra/docker/python-service.Dockerfile
+      args:
+        PORT: "8002"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LEDGER_DATABASE_URL: ${LEDGER_DATABASE_URL:-postgresql+asyncpg://spend_ledger:change_me_ledger@postgres-ledger:5432/ledger_db}
+      SQLALCHEMY_ECHO: ${SQLALCHEMY_ECHO:-false}
+      PROFILE_REQUESTS: ${PROFILE_REQUESTS:-false}
+      PORT: ${LEDGER_PORT:-8002}
+    depends_on:
+      postgres-ledger:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ['PORT']+'/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - spend-ledger-net
+
+  postgres-auth:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_AUTH_USER:-spend_auth}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-change_me_auth}
+      POSTGRES_DB: ${POSTGRES_AUTH_DB:-auth_db}
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_AUTH_USER:-spend_auth} -d ${POSTGRES_AUTH_DB:-auth_db}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spend-ledger-net
+
+  postgres-ledger:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_LEDGER_USER:-spend_ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_LEDGER_PASSWORD:-change_me_ledger}
+      POSTGRES_DB: ${POSTGRES_LEDGER_DB:-ledger_db}
+    volumes:
+      - ledger_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_LEDGER_USER:-spend_ledger} -d ${POSTGRES_LEDGER_DB:-ledger_db}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spend-ledger-net
+
+networks:
+  spend-ledger-net:
+    name: spend-ledger-net
+
+volumes:
+  auth_data:
+  ledger_data:
