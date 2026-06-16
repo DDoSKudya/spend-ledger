@@ -15,7 +15,6 @@ services:
       - ./services/bff/tests:/app/tests
     environment:
       LOG_LEVEL: debug
-      DEV_USER_ID: ${DEV_USER_ID:-00000000-0000-4000-8000-000000000001}
     command:
       [
         "sh",
@@ -27,6 +26,14 @@ services:
     volumes:
       - ./services/auth/app:/app/app
       - ./services/auth/tests:/app/tests
+      - ./services/auth/alembic:/app/alembic
+      - ./services/auth/alembic.ini:/app/alembic.ini
+    command:
+      [
+        "sh",
+        "-c",
+        "uv run uvicorn app.main:app --host 0.0.0.0 --port $$PORT --reload",
+      ]
 
   ledger-service:
     ports:
@@ -39,7 +46,6 @@ services:
     environment:
       SQLALCHEMY_ECHO: "true"
       PROFILE_REQUESTS: "true"
-      DEV_USER_ID: ${DEV_USER_ID:-00000000-0000-4000-8000-000000000001}
     command:
       [
         "sh",

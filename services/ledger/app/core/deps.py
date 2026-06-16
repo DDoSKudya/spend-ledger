@@ -6,8 +6,6 @@ from uuid import UUID
 from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-
 sql_query_count: ContextVar[int] = ContextVar("sql_query_count", default=0)
 
 OptionalUserIdHeader = Annotated[UUID | None, Header(alias="X-User-Id")]
@@ -31,12 +29,10 @@ async def get_db(request: Request) -> AsyncIterator[AsyncSession]:
         yield session
 
 
-def get_user_id(x_user_id: OptionalUserIdHeader) -> UUID:
-    if x_user_id is not None:
-        return x_user_id
-    if settings.APP_ENV == "development":
-        return settings.DEV_USER_ID
-    raise HTTPException(status_code=401, detail="Missing X-User-Id header")
+def get_user_id(x_user_id: OptionalUserIdHeader = None) -> UUID:
+    if x_user_id is None:
+        raise HTTPException(status_code=401, detail="Missing X-User-Id header")
+    return x_user_id
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]

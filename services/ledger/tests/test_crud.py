@@ -87,3 +87,32 @@ async def test_duplicate_category_name_returns_409(integration_client):
     response = await client.post("/internal/v1/categories", json={"name": "Food"})
     assert response.status_code == 409
     assert response.json()["code"] == "category_duplicate_name"
+
+
+@pytest.mark.asyncio
+async def test_requires_x_user_id_header(integration_client_without_user_header):
+    response = await integration_client_without_user_header.get("/internal/v1/categories")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_access_foreign_expense(integration_client, integration_client_user_b):
+    user_a = integration_client
+    user_b = integration_client_user_b
+
+    category = await user_a.post("/internal/v1/categories", json={"name": "Food"})
+    category_id = category.json()["id"]
+    created = await user_a.post(
+        "/internal/v1/expenses",
+        json={
+            "amount": "15.00",
+            "category_id": category_id,
+            "tag_ids": [],
+            "description": "for-a",
+            "expense_date": "2026-06-16",
+        },
+    )
+    expense_id = created.json()["id"]
+
+    foreign_read = await user_b.get(f"/internal/v1/expenses/{expense_id}")
+    assert foreign_read.status_code == 404

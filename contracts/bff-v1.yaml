@@ -3,6 +3,36 @@ info:
   title: Spend Ledger BFF
   version: 1.0.0
 paths:
+  /api/v1/auth/register:
+    post:
+      summary: Register account
+      responses:
+        "201":
+          description: Created
+  /api/v1/auth/login:
+    post:
+      summary: Login and set refresh cookie
+      responses:
+        "200":
+          description: OK
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh access token using httpOnly cookie
+      responses:
+        "200":
+          description: OK
+  /api/v1/auth/logout:
+    post:
+      summary: Logout and clear refresh cookie
+      responses:
+        "204":
+          description: No Content
+  /api/v1/auth/me:
+    get:
+      summary: Current user profile
+      responses:
+        "200":
+          description: OK
   /api/v1/health:
     get:
       summary: BFF health
