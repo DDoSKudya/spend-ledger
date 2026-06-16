@@ -4,7 +4,8 @@ Thumbs.db
 
 # IDE
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 *.swp
 *.swo
 *~
@@ -50,6 +51,8 @@ coverage/
 htmlcov/
 .pytest_cache/
 .nyc_output/
+.ruff_cache/
+.mypy_cache/
 
 # Database
 *.db
@@ -60,3 +63,6 @@ htmlcov/
 *.local
 tmp/
 temp/
+
+
+.plan

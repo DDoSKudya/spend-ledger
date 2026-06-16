@@ -1,0 +1,29 @@
+services:
+  frontend:
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+
+  bff:
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/bff/app:/app/app
+      - ./services/bff/tests:/app/tests
+    environment:
+      LOG_LEVEL: debug
+
+  auth-service:
+    volumes:
+      - ./services/auth/app:/app/app
+      - ./services/auth/tests:/app/tests
+
+  ledger-service:
+    volumes:
+      - ./services/ledger/app:/app/app
+      - ./services/ledger/tests:/app/tests
+    environment:
+      SQLALCHEMY_ECHO: "true"

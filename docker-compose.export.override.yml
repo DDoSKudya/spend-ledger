@@ -1,0 +1,10 @@
+services:
+  export-api:
+    volumes:
+      - ./services/export/app:/app/app
+      - ./services/export/tests:/app/tests
+
+  export-worker:
+    volumes:
+      - ./services/export/app:/app/app
+      - ./services/export/tests:/app/tests

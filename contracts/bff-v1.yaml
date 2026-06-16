@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Spend Ledger BFF
+  version: 1.0.0
+paths:
+  /api/v1/health:
+    get:
+      summary: BFF health
+      responses:
+        "200":
+          description: OK
+  /health:
+    get:
+      summary: Container healthcheck
+      responses:
+        "200":
+          description: OK
