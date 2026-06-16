@@ -1,0 +1,20 @@
+# Isolated Postgres for host-side ledger integration tests (port 5433).
+# Does not affect dev postgres-ledger on :5432.
+name: spend-ledger-integration
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: spend_ledger_test
+      POSTGRES_PASSWORD: test_ledger
+      POSTGRES_DB: ledger_db_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spend_ledger_test -d ledger_db_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data

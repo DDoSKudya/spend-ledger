@@ -2,10 +2,11 @@
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE / editors (local only — do not commit)
 .idea/
-.vscode/*
-!.vscode/settings.json
+.vscode/
+.cursor/
+*.code-workspace
 *.swp
 *.swo
 *~
@@ -44,6 +45,7 @@ target/
 .next/
 .nuxt/
 .turbo/
+.vite/
 
 # Test & coverage
 coverage/
@@ -63,6 +65,5 @@ htmlcov/
 *.local
 tmp/
 temp/
-
 
 .plan

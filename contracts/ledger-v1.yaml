@@ -9,3 +9,168 @@ paths:
       responses:
         "200":
           description: OK
+  /internal/v1/categories:
+    get:
+      summary: List categories
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create category
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "201":
+          description: Created
+        "409":
+          description: Duplicate name
+  /internal/v1/categories/{id}:
+    get:
+      summary: Get category
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+    put:
+      summary: Update category
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+    delete:
+      summary: Delete category
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Deleted
+        "409":
+          description: Category in use
+  /internal/v1/tags:
+    get:
+      summary: List tags
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create tag
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "201":
+          description: Created
+  /internal/v1/tags/{id}:
+    patch:
+      summary: Rename tag
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+    delete:
+      summary: Delete tag
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Deleted
+  /internal/v1/expenses:
+    get:
+      summary: List expenses
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create expense
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "201":
+          description: Created
+  /internal/v1/expenses/{id}:
+    get:
+      summary: Get expense
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+    put:
+      summary: Update expense
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+    delete:
+      summary: Delete expense
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Deleted
+components:
+  parameters:
+    XUserId:
+      name: X-User-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
