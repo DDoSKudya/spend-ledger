@@ -4,7 +4,7 @@ COMPOSE_EXPORT_DEV := $(COMPOSE_EXPORT) -f docker-compose.override.yml -f docker
 
 SERVICES := bff auth ledger export
 
-.PHONY: up up-export down logs sync test test-backend test-frontend lock migrate-ledger
+.PHONY: up up-export down logs sync test test-backend test-frontend lock migrate-ledger pre-commit-install pre-commit
 
 up:
 	$(COMPOSE) -f docker-compose.yml -f docker-compose.override.yml up -d
@@ -48,3 +48,9 @@ lock:
 
 migrate-ledger:
 	cd services/ledger && ../../.venv/bin/python -m alembic upgrade head
+
+pre-commit-install:
+	uv run pre-commit install
+
+pre-commit:
+	uv run pre-commit run --all-files

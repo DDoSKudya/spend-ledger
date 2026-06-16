@@ -62,6 +62,12 @@ make sync
 Creates `.venv/` at the project root and installs per-service envs for Docker/CI lockfiles.
 Select interpreter once: **`.venv/bin/python`** (already set in `.vscode/settings.json`).
 
+Install git hooks (ruff lint + format on commit):
+
+```bash
+make pre-commit-install
+```
+
 `pyrightconfig.json` maps each `services/*` folder to the correct `app` package — no manual
 interpreter switching when editing different services.
 
@@ -81,6 +87,7 @@ PostgreSQL must be reachable (e.g. `make up`).
 
 ```bash
 make test
+make pre-commit
 make lock
 make migrate-ledger
 ```
