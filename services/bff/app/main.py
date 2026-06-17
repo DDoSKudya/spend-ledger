@@ -2,9 +2,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 
 from app.core.config import settings
+from app.core.error_handlers import register_error_handlers
+from app.core.exceptions import ServiceUnavailableError
 from app.core.logging import setup_logging
 from app.core.middleware import AuthMiddleware, RequestIdMiddleware, RequestLogMiddleware
 from app.routes.auth import router as auth_router
@@ -28,6 +30,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+register_error_handlers(app)
 app.add_middleware(RequestLogMiddleware)
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(AuthMiddleware)
@@ -42,4 +45,24 @@ app.include_router(exports_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+async def ready(request: Request) -> dict[str, str]:
+    client: httpx.AsyncClient = request.app.state.http_client
+    dependencies = (
+        ("auth", f"{settings.AUTH_SERVICE_URL}/ready"),
+        ("ledger", f"{settings.LEDGER_SERVICE_URL}/ready"),
+    )
+    if settings.EXPORT_ENABLED:
+        dependencies += (("export", f"{settings.EXPORT_SERVICE_URL}/ready"),)
+
+    for name, url in dependencies:
+        try:
+            response = await client.get(url, timeout=5.0)
+        except httpx.HTTPError as exc:
+            raise ServiceUnavailableError(name) from exc
+        if response.status_code != 200:
+            raise ServiceUnavailableError(name)
     return {"status": "ok"}

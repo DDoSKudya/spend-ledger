@@ -16,7 +16,7 @@ def _store(request: Request) -> JobStoreProtocol:
 
 
 @router.post("", response_model=ExportJobRead, status_code=status.HTTP_202_ACCEPTED)
-def create_export(
+async def create_export(
     data: ExportCreate,
     user_id: CurrentUserId,
     request: Request,
@@ -25,12 +25,12 @@ def create_export(
 
 
 @router.get("/{job_id}", response_model=ExportJobRead)
-def get_export(job_id: UUID, user_id: CurrentUserId, request: Request) -> ExportJobRead:
+async def get_export(job_id: UUID, user_id: CurrentUserId, request: Request) -> ExportJobRead:
     return service.get_export_job(_store(request), user_id, job_id)
 
 
 @router.get("/{job_id}/file")
-def download_export(job_id: UUID, user_id: CurrentUserId, request: Request) -> FileResponse:
+async def download_export(job_id: UUID, user_id: CurrentUserId, request: Request) -> FileResponse:
     file_path, export_format = service.resolve_export_file(_store(request), user_id, job_id)
     return FileResponse(
         path=file_path,

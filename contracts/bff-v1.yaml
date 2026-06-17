@@ -2,6 +2,13 @@ openapi: 3.1.0
 info:
   title: Spend Ledger BFF
   version: 1.0.0
+  description: |
+    Public API for the Spend Ledger SPA. Proxies to internal auth, ledger, and export services.
+
+    Auth notes:
+    - Login and refresh return a short-lived `access_token` in JSON.
+    - The refresh token is stored in an httpOnly cookie (`refresh_token`, path `/api/v1/auth`).
+    - Protected routes require `Authorization: Bearer <access_token>`.
 paths:
   /api/v1/auth/register:
     post:
@@ -12,15 +19,21 @@ paths:
   /api/v1/auth/login:
     post:
       summary: Login and set refresh cookie
+      description: |
+        Returns `access_token` in the JSON body. Sets an httpOnly `refresh_token` cookie
+        used by `/api/v1/auth/refresh` (not sent in request body).
       responses:
         "200":
-          description: OK
+          description: Access token JSON; refresh token in Set-Cookie
   /api/v1/auth/refresh:
     post:
       summary: Refresh access token using httpOnly cookie
+      description: |
+        Reads `refresh_token` from the cookie jar. On success returns a new access token
+        and rotates the refresh cookie.
       responses:
         "200":
-          description: OK
+          description: New access token JSON; rotated refresh cookie
   /api/v1/auth/logout:
     post:
       summary: Logout and clear refresh cookie
@@ -237,14 +250,20 @@ paths:
   /api/v1/exports:
     post:
       summary: Start background export
+      description: |
+        Enqueues a Celery job. Poll `GET /api/v1/exports/{job_id}` until status is
+        `done` or `failed` (frontend polls every ~1.5s, ~90s timeout).
       responses:
         "202":
-          description: Accepted
+          description: Job accepted; body includes `job_id` and initial `status`
         "401":
           description: Unauthorized
   /api/v1/exports/{job_id}:
     get:
       summary: Export job status
+      description: |
+        Returns job status (`pending`, `processing`, `done`, `failed`).
+        When status is `done`, the BFF adds `download_url` for the public download route.
       parameters:
         - name: job_id
           in: path

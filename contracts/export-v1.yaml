@@ -2,6 +2,7 @@ openapi: 3.1.0
 info:
   title: Spend Ledger Export Service
   version: 1.0.0
+  description: Internal export jobs. Status lifecycle is pending → processing → done | failed.
 paths:
   /health:
     get:
@@ -12,12 +13,14 @@ paths:
   /internal/v1/exports:
     post:
       summary: Create export job
+      description: Queues a Celery task that paginates ledger expenses and writes CSV/XLSX.
       responses:
         "202":
-          description: Accepted
+          description: Job created with status `pending`
   /internal/v1/exports/{job_id}:
     get:
       summary: Get export job status
+      description: Poll until status is terminal (`done` or `failed`).
       parameters:
         - name: job_id
           in: path

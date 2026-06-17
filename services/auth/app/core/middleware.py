@@ -10,6 +10,16 @@ from starlette.responses import Response
 from app.core.session import session_scope
 
 SERVICE_NAME = "auth"
+_STATELESS_PATHS = frozenset({"/health", "/ready"})
+
+
+def _needs_db_session(request: Request) -> bool:
+    if request.url.path in _STATELESS_PATHS:
+        return False
+    if request.url.path == "/internal/v1/auth/verify":
+        authorization = request.headers.get("Authorization", "")
+        return authorization.startswith("Bearer ")
+    return True
 
 
 class DbSessionMiddleware(BaseHTTPMiddleware):
@@ -18,7 +28,7 @@ class DbSessionMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        if request.url.path == "/health":
+        if not _needs_db_session(request):
             return await call_next(request)
         async with session_scope(request.app.state.session_factory):
             return await call_next(request)

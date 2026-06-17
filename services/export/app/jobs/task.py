@@ -81,13 +81,13 @@ def _run_export(
         return
 
     store.mark_processing(job_id)
-    rows = list(ledger.iter_expenses(user_id, filters))
+    rows = ledger.iter_expenses(user_id, filters)
     file_path = _build_file_path(user_id, job_id, export_format)
     tmp_path = file_path.with_suffix(f"{file_path.suffix}.tmp")
     write_export_file(tmp_path, export_format, rows)
     tmp_path.replace(file_path)
     store.mark_done(job_id, str(file_path))
-    logger.info("export_job_completed", job_id=str(job_id), rows_exported=len(rows))
+    logger.info("export_job_completed", job_id=str(job_id))
 
 
 def _build_file_path(user_id: UUID, job_id: UUID, export_format: ExportFormat) -> Path:

@@ -11,7 +11,7 @@ Thumbs.db
 *.swo
 *~
 
-# Environment
+# Environment (repo root and per-service)
 .env
 .env.*
 !.env.example
@@ -24,46 +24,54 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Dependencies
-node_modules/
-vendor/
+# Python (root .venv + services/*)
 .venv/
 venv/
 __pycache__/
 *.py[cod]
 .Python
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.uv/
 
-# Build & cache
+# Node / frontend
+node_modules/
 dist/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+**/.vite/
+frontend/.eslintcache
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+
+# Build & cache (other tools)
 build/
 out/
 target/
-*.egg-info/
-.eggs/
 .cache/
 .parcel-cache/
 .next/
 .nuxt/
 .turbo/
-.vite/
 
-# Test & coverage
+# Test & coverage (repo root from make test)
 coverage/
-.coverage
-htmlcov/
-.pytest_cache/
-.nyc_output/
-.ruff_cache/
-.mypy_cache/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Misc
-*.local
-tmp/
-temp/
+# Infra — generated TLS certs (see scripts/generate-dev-certs.sh)
+infra/certs/*
+!infra/certs/.gitkeep
 
+# Local planning notes
 .plan

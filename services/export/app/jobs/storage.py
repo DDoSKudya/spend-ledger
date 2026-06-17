@@ -105,6 +105,12 @@ class JobStore(JobStoreBase):
     def close(self) -> None:
         self._redis.close()
 
+    def ping(self) -> bool:
+        try:
+            return bool(self._redis.ping())
+        except redis.RedisError:
+            return False
+
     def get(self, job_id: UUID) -> JobRecord | None:
         raw = self._redis.get(_job_key(job_id))
         return None if raw is None else JobRecord.model_validate_json(str(raw))

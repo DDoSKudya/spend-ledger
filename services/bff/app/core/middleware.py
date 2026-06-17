@@ -4,12 +4,13 @@ from uuid import uuid4
 
 import jwt
 import structlog
-from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
 from app.core.config import settings
+from app.core.error_handlers import error_response_for
+from app.core.exceptions import InvalidTokenError, MissingBearerTokenError
 
 SERVICE_NAME = "bff"
 ACCESS_TOKEN_TYPE = "access"  # noqa: S105
@@ -50,27 +51,18 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         authorization = request.headers.get("Authorization")
         if authorization is None or not authorization.startswith("Bearer "):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Missing bearer token", "code": "unauthorized"},
-            )
+            return error_response_for(MissingBearerTokenError())
 
         token = authorization.split(" ", maxsplit=1)[1]
         try:
             payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
         except jwt.PyJWTError:
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Invalid token", "code": "invalid_token"},
-            )
+            return error_response_for(InvalidTokenError())
 
         user_id = payload.get("sub")
         token_type = payload.get("type")
         if token_type != ACCESS_TOKEN_TYPE or not user_id:
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Invalid token", "code": "invalid_token"},
-            )
+            return error_response_for(InvalidTokenError())
 
         request.state.user_id = user_id
         return await call_next(request)

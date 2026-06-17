@@ -1,6 +1,7 @@
 FROM python:3.12-alpine
 
-RUN apk add --no-cache libstdc++ curl \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache libstdc++ curl \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && install -m 0755 /root/.local/bin/uv /usr/local/bin/uv \
     && install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx \

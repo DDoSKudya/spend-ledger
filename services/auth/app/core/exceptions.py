@@ -6,6 +6,11 @@ class AppError(Exception):
         super().__init__(message)
 
 
+class UnauthorizedError(AppError):
+    def __init__(self, message: str = "Unauthorized", code: str = "unauthorized") -> None:
+        super().__init__(message, code, 401)
+
+
 class DuplicateEmailError(AppError):
     def __init__(self) -> None:
         super().__init__("User with this email already exists", "email_already_exists", 409)

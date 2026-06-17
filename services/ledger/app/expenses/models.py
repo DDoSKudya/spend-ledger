@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -18,6 +19,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base import Base
+
+if TYPE_CHECKING:
+    from app.categories.models import Category
+    from app.tags.models import Tag
 
 
 class ExpenseTag(Base):
@@ -63,7 +68,3 @@ class Expense(Base):
         secondary="expense_tags",
         back_populates="expenses",
     )
-
-
-from app.categories.models import Category  # noqa: E402
-from app.tags.models import Tag  # noqa: E402

@@ -1,6 +1,6 @@
 [project]
 name = "spend-ledger-auth"
-version = "0.1.0"
+version = "1.0.0"
 description = "Spend Ledger Auth Service"
 requires-python = ">=3.12"
 dependencies = [
@@ -39,3 +39,12 @@ packages = ["app"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/main.py"]
+
+[tool.coverage.report]
+fail_under = 75
+show_missing = true
+skip_covered = true

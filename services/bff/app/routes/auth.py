@@ -2,13 +2,17 @@ import json
 
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
-from starlette import status
 
 from app.clients.proxy import forward_to_auth
 from app.core.config import settings
+from app.core.constants import HTTP_OK
+from app.core.exceptions import (
+    InvalidUpstreamResponseError,
+    MissingBearerTokenError,
+    MissingRefreshTokenError,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
-HTTP_OK = status.HTTP_200_OK
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
@@ -23,14 +27,14 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
     )
 
 
-def _extract_session_payload(response: Response) -> tuple[dict, str] | None:
+def _extract_session_payload(response: Response) -> tuple[dict, str]:
     try:
         parsed = json.loads(bytes(response.body).decode("utf-8"))
-    except json.JSONDecodeError:
-        return None
+    except json.JSONDecodeError as exc:
+        raise InvalidUpstreamResponseError() from exc
     refresh_token = parsed.pop("refresh_token", None)
     if not isinstance(refresh_token, str) or not refresh_token:
-        return None
+        raise InvalidUpstreamResponseError()
     return parsed, refresh_token
 
 
@@ -47,11 +51,7 @@ async def login(request: Request) -> Response:
     if auth_response.status_code != HTTP_OK:
         return auth_response
 
-    extracted = _extract_session_payload(auth_response)
-    if extracted is None:
-        return JSONResponse(status_code=502, content={"detail": "Invalid auth service response"})
-    parsed, refresh_token = extracted
-
+    parsed, refresh_token = _extract_session_payload(auth_response)
     response = JSONResponse(status_code=HTTP_OK, content=parsed)
     _set_refresh_cookie(response, refresh_token)
     return response
@@ -61,7 +61,7 @@ async def login(request: Request) -> Response:
 async def refresh(request: Request) -> Response:
     refresh_token = request.cookies.get(settings.REFRESH_COOKIE_NAME)
     if not refresh_token:
-        return JSONResponse(status_code=401, content={"detail": "Missing refresh token"})
+        raise MissingRefreshTokenError()
 
     auth_response = await forward_to_auth(
         request,
@@ -71,11 +71,7 @@ async def refresh(request: Request) -> Response:
     if auth_response.status_code != HTTP_OK:
         return auth_response
 
-    extracted = _extract_session_payload(auth_response)
-    if extracted is None:
-        return JSONResponse(status_code=502, content={"detail": "Invalid auth service response"})
-    parsed, new_refresh = extracted
-
+    parsed, new_refresh = _extract_session_payload(auth_response)
     response = JSONResponse(status_code=HTTP_OK, content=parsed)
     _set_refresh_cookie(response, new_refresh)
     return response
@@ -94,7 +90,6 @@ async def logout(request: Request) -> Response:
 
 @router.get("/me")
 async def me(request: Request) -> Response:
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        return JSONResponse(status_code=401, content={"detail": "Missing bearer token"})
+    if not request.headers.get("Authorization"):
+        raise MissingBearerTokenError()
     return await forward_to_auth(request, "/internal/v1/auth/verify")
