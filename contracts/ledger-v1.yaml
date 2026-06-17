@@ -112,12 +112,58 @@ paths:
           description: Deleted
   /internal/v1/expenses:
     get:
-      summary: List expenses
+      summary: List expenses with filters and pagination
       parameters:
         - $ref: "#/components/parameters/XUserId"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: expense_date:desc
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tag_ids
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: OK
+          description: Paginated expense list
+        "422":
+          description: Invalid query parameters
     post:
       summary: Create expense
       parameters:
@@ -165,6 +211,23 @@ paths:
       responses:
         "204":
           description: Deleted
+  /internal/v1/reports/monthly:
+    get:
+      summary: Monthly expense aggregates
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Monthly report
 components:
   parameters:
     XUserId:

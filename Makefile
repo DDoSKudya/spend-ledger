@@ -1,26 +1,22 @@
 COMPOSE := docker compose
-COMPOSE_DEV := $(COMPOSE) -f docker-compose.yml -f docker-compose.override.yml
-COMPOSE_INTEGRATION := $(COMPOSE) -f docker-compose.integration.yml
-COMPOSE_EXPORT := $(COMPOSE) -f docker-compose.yml -f docker-compose.export.yml
-COMPOSE_EXPORT_DEV := $(COMPOSE_EXPORT) -f docker-compose.override.yml -f docker-compose.export.override.yml
+COMPOSE_INTEGRATION := COMPOSE_PROJECT_NAME=spend-ledger-integration $(COMPOSE) --profile integration
 
 SERVICES := bff auth ledger export
 AUTH_DATABASE_URL ?= postgresql+asyncpg://spend_auth:change_me_auth@localhost:5432/auth_db
 LEDGER_DATABASE_URL ?= postgresql+asyncpg://spend_ledger:change_me_ledger@localhost:5432/ledger_db
 
-.PHONY: up up-export down logs sync test test-backend test-frontend lock migrate-auth migrate-auth-docker migrate-ledger migrate-ledger-docker test-ledger-integration verify pre-commit-install pre-commit
+.PHONY: dev up down logs sync test test-backend test-frontend lock migrate-auth migrate-ledger test-ledger-integration verify pre-commit-install pre-commit _migrate
+
+dev:
+	$(COMPOSE) up -d --wait
+	@$(MAKE) --no-print-directory _migrate
 
 up:
-	$(COMPOSE_DEV) up -d --wait
-	$(MAKE) migrate-auth-docker
-	$(MAKE) migrate-ledger-docker
-
-up-export:
-	$(COMPOSE_EXPORT_DEV) up -d
+	$(COMPOSE) --profile export up -d --wait
+	@$(MAKE) --no-print-directory _migrate
 
 down:
-	-$(COMPOSE_EXPORT) down
-	$(COMPOSE) down
+	$(COMPOSE) --profile export down
 
 logs:
 	$(COMPOSE) logs -f
@@ -58,19 +54,17 @@ migrate-auth:
 migrate-ledger:
 	cd services/ledger && LEDGER_DATABASE_URL=$(LEDGER_DATABASE_URL) ../../.venv/bin/python -m alembic upgrade head
 
-migrate-auth-docker:
-	$(COMPOSE_DEV) exec -T auth-service uv run alembic upgrade head
-
-migrate-ledger-docker:
-	$(COMPOSE_DEV) exec -T ledger-service uv run alembic upgrade head
+_migrate:
+	$(COMPOSE) exec -T auth-service uv run alembic upgrade head
+	$(COMPOSE) exec -T ledger-service uv run alembic upgrade head
 
 test-ledger-integration:
-	$(COMPOSE_INTEGRATION) up -d --wait
+	$(COMPOSE_INTEGRATION) up -d --wait postgres-integration
 	cd services/ledger && \
 	LEDGER_INTEGRATION=1 \
 	LEDGER_DATABASE_URL=postgresql+asyncpg://spend_ledger_test:test_ledger@localhost:5433/ledger_db_test \
 	APP_ENV=test \
-	../../.venv/bin/python -m pytest tests/test_crud.py tests/test_schemas.py -q
+	../../.venv/bin/python -m pytest tests/test_crud.py tests/test_schemas.py tests/test_filters.py -q
 	$(COMPOSE_INTEGRATION) down
 
 verify: test

@@ -123,10 +123,57 @@ paths:
           description: Deleted
   /api/v1/expenses:
     get:
-      summary: List expenses
+      summary: List expenses with filters and pagination
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: expense_date:desc
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tag_ids
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: OK
+          description: Paginated expense list
+        "401":
+          description: Unauthorized
     post:
       summary: Create expense
       responses:
@@ -169,6 +216,24 @@ paths:
       responses:
         "204":
           description: Deleted
+  /api/v1/reports/monthly:
+    get:
+      summary: Monthly expense aggregates
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Monthly report
+        "401":
+          description: Unauthorized
   /health:
     get:
       summary: Container healthcheck

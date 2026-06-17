@@ -5,7 +5,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import (
@@ -24,33 +23,32 @@ from app.core.security import (
     hash_refresh_token,
     verify_password,
 )
+from app.core.session import get_session
 from app.users.models import RefreshToken, User
 from app.users.schemas import LoginRequest, RegisterRequest, TokenResponse, UserRead
 
 
-async def register_user(session: AsyncSession, data: RegisterRequest) -> UserRead:
+async def register_user(data: RegisterRequest) -> UserRead:
+    session = get_session()
     user = User(email=data.email.lower(), password_hash=hash_password(data.password))
     session.add(user)
     try:
-        await session.commit()
+        await session.flush()
     except IntegrityError as exc:
-        await session.rollback()
         raise DuplicateEmailError() from exc
-    await session.refresh(user)
     return UserRead.model_validate(user)
 
 
-async def login_user(session: AsyncSession, data: LoginRequest) -> tuple[TokenResponse, str]:
+async def login_user(data: LoginRequest) -> tuple[TokenResponse, str]:
+    session = get_session()
     user = await session.scalar(select(User).where(User.email == data.email.lower()))
     if user is None or not verify_password(data.password, user.password_hash):
         raise InvalidCredentialsError()
-    return await _issue_tokens(session, user.id)
+    return await _issue_tokens(user.id)
 
 
-async def refresh_access_token(
-    session: AsyncSession,
-    refresh_token: str,
-) -> tuple[TokenResponse, str]:
+async def refresh_access_token(refresh_token: str) -> tuple[TokenResponse, str]:
+    session = get_session()
     payload = decode_token(refresh_token, REFRESH_TOKEN_TYPE)
     token_hash = hash_refresh_token(refresh_token)
     token_row = await session.scalar(
@@ -62,26 +60,25 @@ async def refresh_access_token(
         raise InvalidTokenError("expired_refresh_token")
 
     token_row.revoked_at = datetime.now(UTC)
-    await session.commit()
-
     user_id = UUID(payload["sub"])
     user = await session.get(User, user_id)
     if user is None:
         raise UserNotFoundError()
-    return await _issue_tokens(session, user_id)
+    return await _issue_tokens(user_id)
 
 
-async def revoke_refresh_token(session: AsyncSession, refresh_token: str) -> None:
+async def revoke_refresh_token(refresh_token: str) -> None:
+    session = get_session()
     token_hash = hash_refresh_token(refresh_token)
     token_row = await session.scalar(
         select(RefreshToken).where(RefreshToken.token_hash == token_hash)
     )
     if token_row is not None and token_row.revoked_at is None:
         token_row.revoked_at = datetime.now(UTC)
-        await session.commit()
 
 
-async def verify_access_token(session: AsyncSession, token: str) -> UserRead:
+async def verify_access_token(token: str) -> UserRead:
+    session = get_session()
     payload = decode_token(token, ACCESS_TOKEN_TYPE)
     user_id = UUID(payload["sub"])
     user = await session.get(User, user_id)
@@ -90,16 +87,18 @@ async def verify_access_token(session: AsyncSession, token: str) -> UserRead:
     return UserRead.model_validate(user)
 
 
-async def _issue_tokens(session: AsyncSession, user_id: UUID) -> tuple[TokenResponse, str]:
+async def _issue_tokens(user_id: UUID) -> tuple[TokenResponse, str]:
+    session = get_session()
     access_token = create_access_token(user_id)
     refresh_token = create_refresh_token(user_id)
-    refresh = RefreshToken(
-        user_id=user_id,
-        token_hash=hash_refresh_token(refresh_token),
-        expires_at=_refresh_expires_at(),
+    session.add(
+        RefreshToken(
+            user_id=user_id,
+            token_hash=hash_refresh_token(refresh_token),
+            expires_at=_refresh_expires_at(),
+        )
     )
-    session.add(refresh)
-    await session.commit()
+    await session.flush()
     return (
         TokenResponse(
             access_token=access_token,

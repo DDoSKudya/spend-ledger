@@ -2,56 +2,52 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.categories.models import Category
 from app.categories.schemas import CategoryCreate, CategoryRead, CategoryUpdate
 from app.core.exceptions import CategoryInUseError, DuplicateNameError, NotFoundError
+from app.core.session import get_session
 from app.expenses.models import Expense
 
 
-async def list_categories(session: AsyncSession, user_id: UUID) -> list[CategoryRead]:
+async def list_categories(user_id: UUID) -> list[CategoryRead]:
+    session = get_session()
     result = await session.scalars(
         select(Category).where(Category.user_id == user_id).order_by(Category.name)
     )
     return [CategoryRead.model_validate(row) for row in result.all()]
 
 
-async def create_category(
-    session: AsyncSession, user_id: UUID, data: CategoryCreate
-) -> CategoryRead:
+async def create_category(user_id: UUID, data: CategoryCreate) -> CategoryRead:
+    session = get_session()
     category = Category(user_id=user_id, name=data.name.strip())
     session.add(category)
     try:
-        await session.commit()
+        await session.flush()
     except IntegrityError as exc:
-        await session.rollback()
         raise DuplicateNameError("category") from exc
-    await session.refresh(category)
     return CategoryRead.model_validate(category)
 
 
-async def get_category(session: AsyncSession, user_id: UUID, category_id: UUID) -> CategoryRead:
-    category = await get_owned_category(session, user_id, category_id)
+async def get_category(user_id: UUID, category_id: UUID) -> CategoryRead:
+    category = await get_owned_category(user_id, category_id)
     return CategoryRead.model_validate(category)
 
 
-async def update_category(
-    session: AsyncSession, user_id: UUID, category_id: UUID, data: CategoryUpdate
-) -> CategoryRead:
-    category = await get_owned_category(session, user_id, category_id)
+async def update_category(user_id: UUID, category_id: UUID, data: CategoryUpdate) -> CategoryRead:
+    session = get_session()
+    category = await get_owned_category(user_id, category_id)
     category.name = data.name.strip()
     try:
-        await session.commit()
+        await session.flush()
     except IntegrityError as exc:
-        await session.rollback()
         raise DuplicateNameError("category") from exc
-    await session.refresh(category)
     return CategoryRead.model_validate(category)
 
 
-async def delete_category(session: AsyncSession, user_id: UUID, category_id: UUID) -> None:
-    category = await get_owned_category(session, user_id, category_id)
+async def delete_category(user_id: UUID, category_id: UUID) -> None:
+    session = get_session()
+    category = await get_owned_category(user_id, category_id)
     expense_count = await session.scalar(
         select(func.count())
         .select_from(Expense)
@@ -60,10 +56,10 @@ async def delete_category(session: AsyncSession, user_id: UUID, category_id: UUI
     if expense_count:
         raise CategoryInUseError(expense_count)
     await session.delete(category)
-    await session.commit()
 
 
-async def get_owned_category(session: AsyncSession, user_id: UUID, category_id: UUID) -> Category:
+async def get_owned_category(user_id: UUID, category_id: UUID) -> Category:
+    session = get_session()
     category = await session.scalar(
         select(Category).where(Category.id == category_id, Category.user_id == user_id)
     )

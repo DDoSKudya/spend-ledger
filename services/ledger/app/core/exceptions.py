@@ -27,3 +27,8 @@ class DuplicateNameError(AppError):
             f"{resource}_duplicate_name",
             409,
         )
+
+
+class ValidationError(AppError):
+    def __init__(self, message: str, code: str = "validation_error") -> None:
+        super().__init__(message, code, 422)

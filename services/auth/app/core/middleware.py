@@ -7,7 +7,21 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.core.session import session_scope
+
 SERVICE_NAME = "auth"
+
+
+class DbSessionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        if request.url.path == "/health":
+            return await call_next(request)
+        async with session_scope(request.app.state.session_factory):
+            return await call_next(request)
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
