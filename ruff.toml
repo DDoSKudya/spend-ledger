@@ -6,20 +6,3 @@ select = ["E", "F", "I", "UP"]
 
 [lint.isort]
 known-first-party = ["app", "tests"]
-
-# Tests: assert, magic numbers in status codes, unused fixture args, etc.
-[lint.per-file-ignores]
-"**/tests/**/*.py" = [
-    "S101",
-    "PLR2004",
-    "ARG001",
-    "ARG002",
-    "PT011",
-    "PT018",
-]
-"**/conftest.py" = [
-    "S101",
-    "PLR2004",
-    "ARG001",
-    "ARG002",
-]

@@ -1,14 +1,14 @@
 import json
 
 from fastapi import APIRouter, Request, Response
-from starlette import status
-from starlette.responses import JSONResponse
+from fastapi.responses import JSONResponse
 
 from app.clients.proxy import forward_to_export
+from app.core.constants import HTTP_OK
+from app.core.exceptions import InvalidUpstreamResponseError
 
 router = APIRouter(prefix="/api/v1/exports", tags=["exports"])
 
-HTTP_OK = status.HTTP_200_OK
 EXPORT_STATUS_DONE = "done"
 
 
@@ -23,7 +23,11 @@ async def get_export_status(request: Request, job_id: str) -> Response:
     if response.status_code != HTTP_OK:
         return response
 
-    payload = json.loads(bytes(response.body))
+    try:
+        payload = json.loads(bytes(response.body))
+    except json.JSONDecodeError as exc:
+        raise InvalidUpstreamResponseError() from exc
+
     if payload.get("status") == EXPORT_STATUS_DONE:
         payload["download_url"] = f"/api/v1/exports/{job_id}/download"
     return JSONResponse(content=payload, status_code=response.status_code)

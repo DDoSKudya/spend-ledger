@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header
 
+from app.core.exceptions import UnauthorizedError
 from app.users import service
 from app.users.schemas import (
     AuthSessionResponse,
@@ -40,6 +41,6 @@ async def verify(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> UserRead:
     if authorization is None or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing bearer token")
+        raise UnauthorizedError("Missing bearer token", "missing_bearer_token")
     token = authorization.split(" ", maxsplit=1)[1]
     return await service.verify_access_token(token)

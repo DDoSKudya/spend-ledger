@@ -6,6 +6,13 @@ class AppError(Exception):
         super().__init__(message)
 
 
+class UnauthorizedError(AppError):
+    def __init__(
+        self, message: str = "Missing X-User-Id header", code: str = "missing_user_id"
+    ) -> None:
+        super().__init__(message, code, 401)
+
+
 class NotFoundError(AppError):
     def __init__(self, resource: str) -> None:
         super().__init__(f"{resource} not found", f"{resource}_not_found", 404)

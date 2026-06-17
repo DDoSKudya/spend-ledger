@@ -55,13 +55,37 @@ class SqlProfileMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class PyInstrumentMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        if not settings.ENABLE_PYINSTRUMENT:
+            return await call_next(request)
+
+        import pyinstrument
+
+        profiler = pyinstrument.Profiler(async_mode="enabled")
+        profiler.start()
+        try:
+            return await call_next(request)
+        finally:
+            profiler.stop()
+            structlog.get_logger().info(
+                "pyinstrument_profile",
+                path=request.url.path,
+                profile=profiler.output_text(unicode=False, color=False),
+            )
+
+
 class DbSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        if request.url.path == "/health":
+        if request.url.path in {"/health", "/ready"}:
             return await call_next(request)
         async with session_scope(request.app.state.session_factory):
             return await call_next(request)

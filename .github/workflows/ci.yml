@@ -5,12 +5,31 @@ on:
     branches: [main, master, develop, feature/*]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate OpenAPI contracts
+        run: |
+          uv sync --dev
+          uv run python scripts/validate_contracts.py
+
+  backend-unit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [bff, auth, export]
+        service: [bff, export]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -23,7 +42,44 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: |
           uv sync --dev
-          uv run pytest
+          uv run pytest --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=75
+          uv run ruff check app tests --config ../../ruff.toml
+          uv run ruff format --check app tests --config ../../ruff.toml
+
+  auth:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: auth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d auth_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install and test
+        working-directory: services/auth
+        env:
+          AUTH_DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/auth_test
+          AUTH_INTEGRATION: "1"
+          APP_ENV: test
+          JWT_SECRET: test_jwt_secret_min_32_chars_for_ci
+        run: |
+          uv sync --dev
+          uv run pytest --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=75
           uv run ruff check app tests --config ../../ruff.toml
           uv run ruff format --check app tests --config ../../ruff.toml
 
@@ -60,7 +116,7 @@ jobs:
         run: |
           uv sync --dev
           uv run alembic upgrade head
-          uv run pytest
+          uv run pytest --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=80
           uv run ruff check app tests --config ../../ruff.toml
           uv run ruff format --check app tests --config ../../ruff.toml
 
@@ -73,9 +129,39 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Lint and build
+      - name: Lint, test, build
         working-directory: frontend
         run: |
           npm ci
           npm run lint
+          npm run test:coverage
           npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Production-like stack (make up): static frontend via nginx, same path as local demos.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Start stack
+        run: |
+          cp .env.example .env
+          docker compose --profile prod --profile export up -d --wait --build
+          docker compose exec -T auth-service uv run alembic upgrade head
+          docker compose exec -T ledger-service uv run alembic upgrade head
+      - name: Verify nginx serves app (not default page)
+        run: |
+          curl -sf http://localhost/api/v1/health
+          curl -sf http://localhost/ | grep -q 'Spend Ledger'
+      - name: Playwright smoke
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost
+        run: |
+          npm ci
+          npx playwright install chromium --with-deps
+          npm run test:e2e

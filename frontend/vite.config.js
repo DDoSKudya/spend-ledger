@@ -15,12 +15,30 @@ export default defineConfig({
     port: 3000,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://localhost",
         changeOrigin: true,
       },
     },
   },
   test: {
     environment: "jsdom",
+    exclude: ["e2e/**", "node_modules/**"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      include: [
+        "src/api/**/*.js",
+        "src/utils/**/*.js",
+        "src/stores/**/*.js",
+        "src/composables/**/*.js",
+      ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 75,
+        statements: 80,
+      },
+    },
   },
 });

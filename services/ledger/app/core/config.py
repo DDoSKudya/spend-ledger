@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
     SQLALCHEMY_ECHO: bool = False
     PROFILE_REQUESTS: bool = False
+    ENABLE_PYINSTRUMENT: bool = False
 
 
 settings = Settings()

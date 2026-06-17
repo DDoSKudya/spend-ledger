@@ -2,7 +2,9 @@ from contextvars import ContextVar
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header
+
+from app.core.exceptions import UnauthorizedError
 
 sql_query_count: ContextVar[int] = ContextVar("sql_query_count", default=0)
 
@@ -23,7 +25,7 @@ def get_sql_count() -> int:
 
 def get_user_id(x_user_id: OptionalUserIdHeader = None) -> UUID:
     if x_user_id is None:
-        raise HTTPException(status_code=401, detail="Missing X-User-Id header")
+        raise UnauthorizedError()
     return x_user_id
 
 
