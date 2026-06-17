@@ -9,3 +9,39 @@ paths:
       responses:
         "200":
           description: OK
+  /internal/v1/exports:
+    post:
+      summary: Create export job
+      responses:
+        "202":
+          description: Accepted
+  /internal/v1/exports/{job_id}:
+    get:
+      summary: Get export job status
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not found
+  /internal/v1/exports/{job_id}/file:
+    get:
+      summary: Download export file
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: File stream
+        "404":
+          description: Not found

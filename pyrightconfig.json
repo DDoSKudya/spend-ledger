@@ -1,6 +1,11 @@
 {
   "venvPath": ".",
   "venv": ".venv",
+  "exclude": [
+    "**/tests",
+    "**/.venv",
+    "**/__pycache__"
+  ],
   "executionEnvironments": [
     { "root": "services/bff" },
     { "root": "services/auth" },
