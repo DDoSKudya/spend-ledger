@@ -147,52 +147,52 @@ async function loadReport() {
       </p>
 
       <template v-else>
-      <BaseCard class="mb-6">
-        <p class="mb-4 text-sm text-slate-600">
-          Grand total: <span class="font-semibold text-slate-900">{{ formatMoney(report.grand_total) }}</span>
-        </p>
-        <div class="h-72">
-          <Bar
-            :data="chartData"
-            :options="chartOptions"
-          />
-        </div>
-      </BaseCard>
+        <BaseCard class="mb-6">
+          <p class="mb-4 text-sm text-slate-600">
+            Grand total: <span class="font-semibold text-slate-900">{{ formatMoney(report.grand_total) }}</span>
+          </p>
+          <div class="h-72">
+            <Bar
+              :data="chartData"
+              :options="chartOptions"
+            />
+          </div>
+        </BaseCard>
 
-      <BaseCard>
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-slate-200 text-slate-600">
-            <tr>
-              <th class="px-2 py-3 font-medium">
-                Month
-              </th>
-              <th class="px-2 py-3 font-medium">
-                Total
-              </th>
-              <th class="px-2 py-3 font-medium">
-                Count
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="row in report.months"
-              :key="row.month"
-              class="border-b border-slate-100"
-            >
-              <td class="px-2 py-3">
-                {{ monthLabel(row.month, report.year ?? year) }}
-              </td>
-              <td class="px-2 py-3 font-medium">
-                {{ formatMoney(row.total) }}
-              </td>
-              <td class="px-2 py-3">
-                {{ row.count }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </BaseCard>
+        <BaseCard>
+          <table class="min-w-full text-left text-sm">
+            <thead class="border-b border-slate-200 text-slate-600">
+              <tr>
+                <th class="px-2 py-3 font-medium">
+                  Month
+                </th>
+                <th class="px-2 py-3 font-medium">
+                  Total
+                </th>
+                <th class="px-2 py-3 font-medium">
+                  Count
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in report.months"
+                :key="row.month"
+                class="border-b border-slate-100"
+              >
+                <td class="px-2 py-3">
+                  {{ monthLabel(row.month, report.year ?? year) }}
+                </td>
+                <td class="px-2 py-3 font-medium">
+                  {{ formatMoney(row.total) }}
+                </td>
+                <td class="px-2 py-3">
+                  {{ row.count }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </BaseCard>
       </template>
     </template>
   </AppLayout>
