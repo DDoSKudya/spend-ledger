@@ -25,3 +25,10 @@ def ledger_proxy_router(
 categories_router = ledger_proxy_router("categories", item_methods=["GET", "PUT", "DELETE"])
 tags_router = ledger_proxy_router("tags", item_methods=["GET", "PATCH", "DELETE"])
 expenses_router = ledger_proxy_router("expenses", item_methods=["GET", "PUT", "DELETE"])
+
+reports_router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
+
+
+@reports_router.get("/monthly")
+async def monthly_report(request: Request):
+    return await forward_to_ledger(request, "/internal/v1/reports/monthly")

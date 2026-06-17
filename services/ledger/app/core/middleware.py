@@ -9,6 +9,7 @@ from starlette.responses import Response
 
 from app.core.config import settings
 from app.core.deps import get_sql_count, reset_sql_count
+from app.core.session import session_scope
 
 SERVICE_NAME = "ledger"
 HIGH_SQL_QUERY_THRESHOLD = 10
@@ -52,3 +53,15 @@ class SqlProfileMiddleware(BaseHTTPMiddleware):
                 structlog.get_logger().warning("high_sql_query_count", **log_kwargs)
         structlog.get_logger().info("request_completed", **log_kwargs)
         return response
+
+
+class DbSessionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        if request.url.path == "/health":
+            return await call_next(request)
+        async with session_scope(request.app.state.session_factory):
+            return await call_next(request)

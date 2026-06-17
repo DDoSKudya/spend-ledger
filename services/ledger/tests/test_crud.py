@@ -77,7 +77,9 @@ async def test_expense_with_tags(integration_client):
 
     listed = await client.get("/internal/v1/expenses")
     assert listed.status_code == 200
-    assert len(listed.json()) == 1
+    page = listed.json()
+    assert page["total"] == 1
+    assert len(page["items"]) == 1
 
 
 @pytest.mark.asyncio

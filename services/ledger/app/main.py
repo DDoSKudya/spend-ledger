@@ -9,9 +9,10 @@ from app.core.config import settings
 from app.core.database import create_engine, create_session_factory
 from app.core.exceptions import AppError
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIdMiddleware, SqlProfileMiddleware
+from app.core.middleware import DbSessionMiddleware, RequestIdMiddleware, SqlProfileMiddleware
 from app.core.sql_counter import attach_sql_counter
 from app.expenses.router import router as expenses_router
+from app.reports.router import router as reports_router
 from app.tags.router import router as tags_router
 
 
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(SqlProfileMiddleware)
 app.add_middleware(RequestIdMiddleware)
+app.add_middleware(DbSessionMiddleware)
 
 
 @app.exception_handler(AppError)
@@ -43,6 +45,7 @@ async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
 app.include_router(categories_router)
 app.include_router(tags_router)
 app.include_router(expenses_router)
+app.include_router(reports_router)
 
 
 @app.get("/health")

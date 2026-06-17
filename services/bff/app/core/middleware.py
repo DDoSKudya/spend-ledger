@@ -17,6 +17,7 @@ PROTECTED_PREFIXES = (
     "/api/v1/categories",
     "/api/v1/tags",
     "/api/v1/expenses",
+    "/api/v1/reports",
 )
 
 

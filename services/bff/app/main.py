@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.middleware import AuthMiddleware, RequestIdMiddleware, RequestLogMiddleware
 from app.routes.auth import router as auth_router
-from app.routes.ledger import categories_router, expenses_router, tags_router
+from app.routes.ledger import categories_router, expenses_router, reports_router, tags_router
 
 api = APIRouter(prefix="/api/v1", tags=["health"])
 
@@ -35,6 +35,7 @@ app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(tags_router)
 app.include_router(expenses_router)
+app.include_router(reports_router)
 
 
 @app.get("/health")

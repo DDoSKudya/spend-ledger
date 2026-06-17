@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.categories.schemas import CategoryRead
+from app.core.pagination import Page
 from app.core.schemas import AmountMixin
 from app.tags.schemas import TagRead
 
@@ -31,3 +32,6 @@ class ExpenseRead(AmountMixin):
     updated_at: datetime
     category: CategoryRead
     tags: list[TagRead]
+
+
+ExpensePage = Page[ExpenseRead]

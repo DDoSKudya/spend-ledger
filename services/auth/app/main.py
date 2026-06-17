@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.database import create_engine, create_session_factory
 from app.core.exceptions import AppError
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIdMiddleware, RequestLogMiddleware
+from app.core.middleware import DbSessionMiddleware, RequestIdMiddleware, RequestLogMiddleware
 from app.users.router import router as users_router
 
 
@@ -25,6 +25,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(RequestLogMiddleware)
 app.add_middleware(RequestIdMiddleware)
+app.add_middleware(DbSessionMiddleware)
 
 
 @app.exception_handler(AppError)

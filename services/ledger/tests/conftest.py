@@ -45,16 +45,13 @@ async def engine():
 
 @pytest.fixture
 async def integration_client(engine) -> AsyncIterator[AsyncClient]:
-    from app.core.deps import get_db
     from app.main import app
 
-    session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-
-    async def override_get_db() -> AsyncIterator[AsyncSession]:
-        async with session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
+    app.state.session_factory = async_sessionmaker(
+        engine,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
     headers = {"X-User-Id": TEST_USER_ID}
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -62,41 +59,30 @@ async def integration_client(engine) -> AsyncIterator[AsyncClient]:
         headers=headers,
     ) as ac:
         yield ac
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def integration_client_without_user_header(engine) -> AsyncIterator[AsyncClient]:
-    from app.core.deps import get_db
     from app.main import app
 
-    session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-
-    async def override_get_db() -> AsyncIterator[AsyncSession]:
-        async with session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as ac:
+    app.state.session_factory = async_sessionmaker(
+        engine,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def integration_client_user_b(engine) -> AsyncIterator[AsyncClient]:
-    from app.core.deps import get_db
     from app.main import app
 
-    session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-
-    async def override_get_db() -> AsyncIterator[AsyncSession]:
-        async with session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
+    app.state.session_factory = async_sessionmaker(
+        engine,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
     headers = {"X-User-Id": TEST_USER_ID_B}
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -104,4 +90,3 @@ async def integration_client_user_b(engine) -> AsyncIterator[AsyncClient]:
         headers=headers,
     ) as ac:
         yield ac
-    app.dependency_overrides.clear()
