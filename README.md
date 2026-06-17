@@ -96,7 +96,8 @@ make migrate-ledger        # from host (needs Postgres on :5432)
 
 `make dev` and `make up` wait for healthchecks and run Alembic migrations automatically.
 
-Stage 0 checklist: `.plan/stage0-status.md` (local, gitignored with `.plan/`).
+Stage checklists: `.plan/stage0-status.md` … `stage4-status.md` (local, gitignored with `.plan/`).  
+**Текущий фокус:** этап 5 — Frontend UI.
 
 ## License
 

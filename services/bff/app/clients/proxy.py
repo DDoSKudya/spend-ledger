@@ -16,16 +16,31 @@ def _build_headers(request: Request) -> dict[str, str]:
         if name.lower() in FORWARD_REQUEST_HEADERS:
             headers[name] = value
 
+    user_id = getattr(request.state, "user_id", None)
+    if user_id is not None:
+        headers["X-User-Id"] = str(user_id)
+
     return headers
+
+
+def _to_response(upstream) -> Response:
+    response_headers: dict[str, str] = {}
+    content_type = upstream.headers.get("content-type")
+    if content_type:
+        response_headers["content-type"] = content_type
+    content_disposition = upstream.headers.get("content-disposition")
+    if content_disposition:
+        response_headers["content-disposition"] = content_disposition
+    return Response(
+        content=upstream.content,
+        status_code=upstream.status_code,
+        headers=response_headers,
+    )
 
 
 async def forward_to_ledger(request: Request, path: str) -> Response:
     client: AsyncClient = request.app.state.http_client
     headers = _build_headers(request)
-    user_id = getattr(request.state, "user_id", None)
-    if user_id is not None:
-        headers["X-User-Id"] = str(user_id)
-
     body = await request.body()
     upstream = await client.request(
         request.method,
@@ -34,15 +49,21 @@ async def forward_to_ledger(request: Request, path: str) -> Response:
         content=body or None,
         headers=headers,
     )
-    response_headers: dict[str, str] = {}
-    content_type = upstream.headers.get("content-type")
-    if content_type:
-        response_headers["content-type"] = content_type
-    return Response(
-        content=upstream.content,
-        status_code=upstream.status_code,
-        headers=response_headers,
+    return _to_response(upstream)
+
+
+async def forward_to_export(request: Request, path: str) -> Response:
+    client: AsyncClient = request.app.state.http_client
+    headers = _build_headers(request)
+    body = await request.body()
+    upstream = await client.request(
+        request.method,
+        f"{settings.EXPORT_SERVICE_URL}{path}",
+        params=list(request.query_params.multi_items()),
+        content=body or None,
+        headers=headers,
     )
+    return _to_response(upstream)
 
 
 async def forward_to_auth(
@@ -59,12 +80,4 @@ async def forward_to_auth(
         json=json_body,
         headers=headers,
     )
-    response_headers: dict[str, str] = {}
-    content_type = upstream.headers.get("content-type")
-    if content_type:
-        response_headers["content-type"] = content_type
-    return Response(
-        content=upstream.content,
-        status_code=upstream.status_code,
-        headers=response_headers,
-    )
+    return _to_response(upstream)
