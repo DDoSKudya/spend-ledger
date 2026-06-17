@@ -5,7 +5,7 @@ target-version = "py312"
 select = ["E", "F", "I", "UP"]
 
 [lint.isort]
-known-first-party = ["app"]
+known-first-party = ["app", "tests"]
 
 # Tests: assert, magic numbers in status codes, unused fixture args, etc.
 [lint.per-file-ignores]

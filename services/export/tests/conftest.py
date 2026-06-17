@@ -4,10 +4,10 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.main import app
+
 # sourcery skip: dont-import-test-modules
 from tests.memory_store import InMemoryJobStore
-
-from app.main import app
 
 USER_ID = uuid4()
 

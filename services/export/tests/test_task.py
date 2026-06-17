@@ -4,11 +4,11 @@ from uuid import uuid4
 
 import pytest
 
-# sourcery skip: dont-import-test-modules
-from tests.memory_store import InMemoryJobStore
-
 from app.jobs.schemas import ExportFilters, ExportFormat, JobStatus
 from app.jobs.task import _run_export
+
+# sourcery skip: dont-import-test-modules
+from tests.memory_store import InMemoryJobStore
 
 USER_ID = uuid4()
 
