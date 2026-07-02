@@ -25,6 +25,22 @@ jobs:
           uv sync --dev
           uv run python scripts/validate_contracts.py
 
+  shared-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Lint spend-ledger-common and scripts
+        run: |
+          uv sync --dev
+          uv run ruff check packages/spend-ledger-common scripts --config ruff.toml
+          uv run ruff format --check packages/spend-ledger-common scripts --config ruff.toml
+
   backend-unit:
     runs-on: ubuntu-latest
     strategy:
@@ -129,11 +145,12 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Lint, test, build
+      - name: Lint, typecheck, test, build
         working-directory: frontend
         run: |
           npm ci
           npm run lint
+          npm run typecheck
           npm run test:coverage
           npm run build
 
