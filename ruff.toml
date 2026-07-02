@@ -5,4 +5,4 @@ target-version = "py312"
 select = ["E", "F", "I", "UP"]
 
 [lint.isort]
-known-first-party = ["app", "tests"]
+known-first-party = ["app", "tests", "spend_ledger_common"]

@@ -4,9 +4,9 @@ from uuid import UUID
 from sqlalchemy import extract, func, select
 
 from app.core.schemas import serialize_amount
-from app.core.session import get_session
 from app.expenses.models import Expense
 from app.reports.schemas import MonthlyReportRead, MonthSummary
+from spend_ledger_common.session import get_session
 
 
 async def monthly_report(

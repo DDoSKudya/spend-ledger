@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {
   BarElement,
   CategoryScale,
@@ -10,13 +10,13 @@ import { computed, onMounted, ref } from "vue";
 import { Bar } from "vue-chartjs";
 
 import { getErrorMessage } from "@/api/errors";
-import AppLayout from "@/components/layout/AppLayout.vue";
 import BaseAlert from "@/components/ui/BaseAlert.vue";
 import BaseCard from "@/components/ui/BaseCard.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 import { useCategories } from "@/composables/useCategories";
 import { useReports } from "@/composables/useReports";
+import type { SelectOption } from "@/types/models";
 import { formatMoney, monthLabel } from "@/utils/format";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
@@ -28,47 +28,45 @@ const error = ref("");
 const year = ref(String(new Date().getFullYear()));
 const categoryId = ref("");
 
-const yearOptions = computed(() => {
+const yearOptions = computed<SelectOption[]>(() => {
   const current = new Date().getFullYear();
-  return Array.from({ length: 5 }, (_, index) => {
-    const value = current - index;
+  return Array.from({ length: 5 }, (_, i) => {
+    const value = current - i;
     return { value: String(value), label: String(value) };
   });
 });
 
+function chartColor(name: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
 const chartData = computed(() => {
-  if (!report.value) {
-    return { labels: [], datasets: [] };
-  }
-
+  if (!report.value) return { labels: [], datasets: [] };
   const reportYear = report.value.year ?? year.value;
-
   return {
     labels: report.value.months.map((item) => monthLabel(item.month, reportYear)),
-    datasets: [
-      {
-        label: "Total",
-        backgroundColor: "#334155",
-        data: report.value.months.map((item) => Number(item.total)),
-      },
-    ],
+    datasets: [{
+      label: "Total",
+      backgroundColor: chartColor("--chart-fill", "#5fb9a8"),
+      hoverBackgroundColor: chartColor("--chart-fill-hover", "#4da896"),
+      borderRadius: 4,
+      data: report.value.months.map((item) => Number(item.total)),
+    }],
   };
 });
 
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false } },
+    y: { grid: { color: "rgba(148, 163, 184, 0.12)" } },
   },
 };
 
-const isEmptyReport = computed(() => {
-  if (!report.value) {
-    return false;
-  }
-  return Number(report.value.grand_total) === 0;
-});
+const isEmpty = computed(() => report.value && Number(report.value.grand_total) === 0);
 
 onMounted(async () => {
   try {
@@ -79,7 +77,7 @@ onMounted(async () => {
   }
 });
 
-async function loadReport() {
+async function loadReport(): Promise<void> {
   error.value = "";
   try {
     await loadReportData({ year: year.value, categoryId: categoryId.value });
@@ -90,28 +88,36 @@ async function loadReport() {
 </script>
 
 <template>
-  <AppLayout>
-    <h1 class="mb-6 text-2xl font-semibold">
-      Monthly report
-    </h1>
+  <div>
+    <header class="view-head">
+      <div>
+        <h1 class="view-head__title">
+          Monthly report
+        </h1>
+        <p class="view-head__meta">
+          Spending by month
+        </p>
+      </div>
+    </header>
 
-    <BaseAlert
-      v-if="error"
-      variant="error"
-      class="mb-4"
-    >
-      {{ error }}
-    </BaseAlert>
+    <Transition name="motion-alert">
+      <BaseAlert
+        v-if="error"
+        variant="error"
+        class="mb-4"
+      >
+        {{ error }}
+      </BaseAlert>
+    </Transition>
 
-    <BaseCard class="mb-6">
-      <div class="grid gap-4 sm:grid-cols-2">
+    <BaseCard class="mb-4">
+      <div class="form-grid form-grid--2">
         <BaseSelect
           v-model="year"
           label="Year"
           :options="yearOptions"
           @update:model-value="loadReport"
         />
-
         <BaseSelect
           v-model="categoryId"
           label="Category"
@@ -131,27 +137,64 @@ async function loadReport() {
       </div>
     </BaseCard>
 
-    <div
-      v-if="loading"
-      class="flex justify-center py-12"
+    <Transition
+      name="motion-body"
+      mode="out-in"
     >
-      <LoadingSpinner />
-    </div>
-
-    <template v-else-if="report">
-      <p
-        v-if="isEmptyReport"
-        class="py-8 text-center text-slate-500"
+      <div
+        v-if="loading"
+        key="loading"
+        class="flex justify-center py-12"
       >
-        No expenses in {{ year }}. Add expenses to see monthly totals here.
-      </p>
+        <LoadingSpinner />
+      </div>
 
-      <template v-else>
-        <BaseCard class="mb-6">
-          <p class="mb-4 text-sm text-slate-600">
-            Grand total: <span class="font-semibold text-slate-900">{{ formatMoney(report.grand_total) }}</span>
-          </p>
-          <div class="h-72">
+      <div
+        v-else-if="report && isEmpty"
+        key="empty"
+        class="empty"
+      >
+        <p class="empty__title">
+          No data for {{ year }}
+        </p>
+        <p class="empty__text">
+          Add expenses to see monthly totals.
+        </p>
+      </div>
+
+      <div
+        v-else-if="report"
+        key="report"
+      >
+        <div class="stat-row">
+          <div class="stat">
+            <div class="stat__label">
+              Total
+            </div>
+            <div class="stat__value">
+              {{ formatMoney(report.grand_total) }}
+            </div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">
+              Year
+            </div>
+            <div class="stat__value">
+              {{ report.year ?? year }}
+            </div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">
+              Active months
+            </div>
+            <div class="stat__value">
+              {{ report.months.filter((r) => Number(r.count) > 0).length }}
+            </div>
+          </div>
+        </div>
+
+        <BaseCard class="mb-4">
+          <div class="h-64">
             <Bar
               :data="chartData"
               :options="chartOptions"
@@ -160,40 +203,35 @@ async function loadReport() {
         </BaseCard>
 
         <BaseCard>
-          <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-slate-200 text-slate-600">
-              <tr>
-                <th class="px-2 py-3 font-medium">
-                  Month
-                </th>
-                <th class="px-2 py-3 font-medium">
-                  Total
-                </th>
-                <th class="px-2 py-3 font-medium">
-                  Count
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in report.months"
-                :key="row.month"
-                class="border-b border-slate-100"
-              >
-                <td class="px-2 py-3">
-                  {{ monthLabel(row.month, report.year ?? year) }}
-                </td>
-                <td class="px-2 py-3 font-medium">
-                  {{ formatMoney(row.total) }}
-                </td>
-                <td class="px-2 py-3">
-                  {{ row.count }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div
+            class="table-scroll"
+            tabindex="-1"
+          >
+            <table class="table-lite">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Total</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in report.months"
+                  :key="row.month"
+                  tabindex="0"
+                >
+                  <td>{{ monthLabel(row.month, report.year ?? year) }}</td>
+                  <td class="mono">
+                    {{ formatMoney(row.total) }}
+                  </td>
+                  <td>{{ row.count }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </BaseCard>
-      </template>
-    </template>
-  </AppLayout>
+      </div>
+    </Transition>
+  </div>
 </template>

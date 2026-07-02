@@ -6,7 +6,7 @@ AUTH_DATABASE_URL := postgresql+asyncpg://spend_auth_test:test_auth@localhost:54
 
 .DEFAULT_GOAL := help
 
-.PHONY: help dev up test down test-e2e _migrate _test-contracts _test-bff-export _test-integration _test-frontend _test-e2e
+.PHONY: help dev up test down test-e2e pre-commit install-hooks _install-hooks _migrate _test-contracts _test-bff-export _test-integration _test-frontend _test-e2e
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -14,10 +14,12 @@ help: ## Show available targets
 # test: unit + integration (no Docker app stack). test-e2e: Playwright against running stack (make dev first).
 
 dev: ## Dev stack (Vite + services + export) and run migrations
+	@$(MAKE) --no-print-directory _install-hooks
 	$(COMPOSE) --profile dev --profile export up -d --wait
 	@$(MAKE) --no-print-directory _migrate
 
 up: ## Production stack (built frontend + export) and run migrations
+	@$(MAKE) --no-print-directory _install-hooks
 	$(COMPOSE) --profile prod --profile export up -d --wait --build
 	@$(MAKE) --no-print-directory _migrate
 
@@ -29,6 +31,16 @@ test: ## Run contracts, backend, and frontend tests
 
 test-e2e: ## Playwright smoke (requires make dev)
 	@$(MAKE) --no-print-directory _test-e2e
+
+install-hooks: ## Install git pre-commit hooks
+	@uv run pre-commit install
+
+pre-commit: ## Run pre-commit hooks on all files
+	@cd frontend && npm ci --silent
+	@uv run pre-commit run --all-files
+
+_install-hooks:
+	@uv run pre-commit install >/dev/null 2>&1 || true
 
 _test-contracts:
 	@echo "==> contracts"

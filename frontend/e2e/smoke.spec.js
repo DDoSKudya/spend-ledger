@@ -11,12 +11,16 @@ test("smoke: register, expense, report, export", async ({ page }) => {
   await page.getByRole("button", { name: "Register" }).click();
 
   await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Sign in", level: 1 })).toBeVisible();
 
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  const loginForm = page.locator("form").filter({
+    has: page.getByRole("button", { name: "Sign in" }),
+  });
+  await loginForm.getByLabel("Email").fill(email);
+  await loginForm.getByLabel("Password").fill(password);
+  await loginForm.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL(/\/expenses/);
+  await expect(page).toHaveURL(/\/expenses/, { timeout: 15_000 });
 
   await page.goto("/categories");
   await page.getByLabel("New category").fill("Food");
@@ -24,7 +28,7 @@ test("smoke: register, expense, report, export", async ({ page }) => {
   await expect(page.getByText("Food")).toBeVisible();
 
   await page.goto("/expenses");
-  await page.getByRole("button", { name: "Add expense" }).click();
+  await page.locator("header.view-head").getByRole("button", { name: "Add expense" }).click();
   const expenseForm = page.locator("form").filter({
     has: page.getByRole("spinbutton", { name: "Amount" }),
   });

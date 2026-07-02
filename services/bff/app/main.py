@@ -5,13 +5,17 @@ import httpx
 from fastapi import APIRouter, FastAPI, Request
 
 from app.core.config import settings
-from app.core.error_handlers import register_error_handlers
 from app.core.exceptions import ServiceUnavailableError
-from app.core.logging import setup_logging
-from app.core.middleware import AuthMiddleware, RequestIdMiddleware, RequestLogMiddleware
+from app.core.middleware import register_auth_middleware
 from app.routes.auth import router as auth_router
 from app.routes.exports import router as exports_router
 from app.routes.ledger import categories_router, expenses_router, reports_router, tags_router
+from spend_ledger_common.error_handlers import register_error_handlers
+from spend_ledger_common.logging import setup_logging
+from spend_ledger_common.middleware import (
+    register_request_id_middleware,
+    register_request_log_middleware,
+)
 
 api = APIRouter(prefix="/api/v1", tags=["health"])
 
@@ -31,9 +35,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 register_error_handlers(app)
-app.add_middleware(RequestLogMiddleware)
-app.add_middleware(RequestIdMiddleware)
-app.add_middleware(AuthMiddleware)
+register_request_log_middleware(app)
+register_auth_middleware(app)
+register_request_id_middleware(app, service_name="bff")
 app.include_router(api)
 app.include_router(auth_router)
 app.include_router(categories_router)

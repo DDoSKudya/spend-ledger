@@ -10,9 +10,9 @@ from pwdlib import PasswordHash
 
 from app.core.config import settings
 from app.core.exceptions import InvalidTokenError
+from spend_ledger_common.constants import ACCESS_TOKEN_TYPE
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_TYPE = "access"  # noqa: S105
 REFRESH_TOKEN_TYPE = "refresh"  # noqa: S105
 
 password_hasher = PasswordHash.recommended()

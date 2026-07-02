@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-07-02
+
+Frontend UI refresh, TypeScript migration, and platform improvements.
 
 ### Added
 
@@ -13,6 +15,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - OpenAPI contract descriptions for auth cookie flow and export polling
 - Export worker healthcheck (Celery inspect ping)
 - Flower UI on host port 5555 in dev/export profiles
+- Atelier UI layout: top navigation, mobile tab bar, split views, drawer-based expense form
+- Shared design tokens (`tokens.css`, `layout.css`, `components.css`, `motion.css`, `transitions.css`)
+- Mint accent palette, Inter typography, and light-only theme
+- App icon and favicon (`public/icons/app-icon.svg`, `public/favicon.svg`)
+- Structured motion: page fade, auth↔app shell transition, loading/content swaps
+- Table scroll regions with sticky headers, keyboard focus styling, and list scroll containers
+- TypeScript across frontend: typed props/emits, domain models, `vue-tsc` typecheck script
+- Lazy-loaded routes and Pinia auth store in Composition API (setup store) style
+- `ConfirmDialog`, `ToastHost`, `AuthLayout`, `NamedResourcePanel`, `ExpenseListItem` components
 
 ### Changed
 
@@ -28,6 +39,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Export worker streams ledger pages to disk without loading all rows into memory
 - Vite dev proxy targets nginx on port 80
 - Flower bound to `127.0.0.1:5555` only
+- Migrated frontend source from JavaScript to TypeScript (`.ts`, `<script setup lang="ts">`)
+- Rebuilt all views and shared UI components on the new design system
+- ESLint configured for Vue + TypeScript (`typescript-eslint`, `vue-eslint-parser`)
 
 ### Fixed
 
@@ -36,6 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ENABLE_PYINSTRUMENT` and `PROFILE_REQUESTS` defaults aligned between compose and `.env.example`
 - Export service `RequestIdMiddleware` includes `service` in structlog context
 - Removed unused `JWT_ACCESS_EXPIRE_MINUTES` from BFF config
+- Vite dev server blank page after TS migration (`resolve.extensionAlias` maps `.js` imports to `.ts`)
+- Export composable registers `onUnmounted` only inside an active component instance
 
 ## [1.0.0] - 2026-06-17
 

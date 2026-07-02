@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
+import AuthLayout from "@/components/layout/AuthLayout.vue";
 import { getErrorMessage } from "@/api/errors";
 import BaseAlert from "@/components/ui/BaseAlert.vue";
 import BaseButton from "@/components/ui/BaseButton.vue";
-import BaseCard from "@/components/ui/BaseCard.vue";
 import BaseInput from "@/components/ui/BaseInput.vue";
 import { useAuth } from "@/composables/useAuth";
 
@@ -20,7 +20,6 @@ const loading = ref(false);
 async function submit() {
   error.value = "";
   loading.value = true;
-
   try {
     await register(email.value, password.value);
     await router.push({ name: "login", query: { registered: "1" } });
@@ -33,55 +32,49 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-8">
-    <BaseCard>
-      <h1 class="mb-6 text-2xl font-semibold">
-        Create account
-      </h1>
-
-      <form
-        class="grid gap-4"
-        @submit.prevent="submit"
+  <AuthLayout title="Create account">
+    <form
+      class="stack"
+      @submit.prevent="submit"
+    >
+      <BaseAlert
+        v-if="error"
+        variant="error"
       >
-        <BaseAlert
-          v-if="error"
-          variant="error"
-        >
-          {{ error }}
-        </BaseAlert>
+        {{ error }}
+      </BaseAlert>
 
-        <BaseInput
-          v-model="email"
-          label="Email"
-          type="email"
-          required
-        />
+      <BaseInput
+        v-model="email"
+        label="Email"
+        type="email"
+        required
+      />
+      <BaseInput
+        v-model="password"
+        label="Password"
+        type="password"
+        minlength="8"
+        required
+      />
 
-        <BaseInput
-          v-model="password"
-          label="Password"
-          type="password"
-          minlength="8"
-          required
-        />
+      <BaseButton
+        type="submit"
+        block
+        :disabled="loading"
+      >
+        {{ loading ? "Creating..." : "Register" }}
+      </BaseButton>
+    </form>
 
-        <BaseButton
-          type="submit"
-          :disabled="loading"
-        >
-          {{ loading ? "Creating..." : "Register" }}
-        </BaseButton>
-      </form>
-
-      <p class="mt-4 text-sm text-slate-600">
-        Already have an account?
-        <RouterLink
-          class="font-medium text-slate-900 underline"
-          to="/login"
-        >
-          Sign in
-        </RouterLink>
-      </p>
-    </BaseCard>
-  </div>
+    <p class="auth-panel__footer">
+      Already have an account?
+      <RouterLink
+        class="link"
+        to="/login"
+      >
+        Sign in
+      </RouterLink>
+    </p>
+  </AuthLayout>
 </template>

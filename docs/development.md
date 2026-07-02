@@ -173,6 +173,7 @@ Mount results into `infra/certs/` and restart nginx. HTTP on port 80 redirects t
 - **Request ID** — BFF middleware sets `X-Request-Id` on every response
 - **Structured logs** — structlog JSON logs per service
 - **SQL echo** — `SQLALCHEMY_ECHO=true` on ledger (default in dev compose)
+- **SQL query count** — `PROFILE_REQUESTS=true` on ledger logs `sql_queries` per request (see `SqlProfileMiddleware`); integration test guards against N+1 regressions
 - **pyinstrument** — set `ENABLE_PYINSTRUMENT=true` on ledger for request profiling
 
 Flower (Celery monitor) runs in the `export` + `dev` profiles at http://127.0.0.1:5555 (bound to localhost only).

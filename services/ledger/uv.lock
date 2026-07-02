@@ -816,6 +816,23 @@ wheels = [
 ]
 
 [[package]]
+name = "spend-ledger-common"
+version = "1.0.0"
+source = { directory = "../../packages/spend-ledger-common" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
+    { name = "structlog", specifier = ">=24.4" },
+]
+
+[[package]]
 name = "spend-ledger-ledger"
 version = "1.0.0"
 source = { editable = "." }
@@ -828,6 +845,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
+    { name = "spend-ledger-common" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "structlog" },
     { name = "uvicorn", extra = ["standard"] },
@@ -852,6 +870,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10" },
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "python-multipart", specifier = ">=0.0.9" },
+    { name = "spend-ledger-common", directory = "../../packages/spend-ledger-common" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
     { name = "structlog", specifier = ">=24.4" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },

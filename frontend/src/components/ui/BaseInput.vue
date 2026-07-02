@@ -1,45 +1,49 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ inheritAttrs: false });
 
-defineProps({
-  modelValue: {
-    type: [String, Number],
-    default: "",
+withDefaults(
+  defineProps<{
+    modelValue?: string | number;
+    label?: string;
+    type?: string;
+    placeholder?: string;
+    required?: boolean;
+  }>(),
+  {
+    modelValue: "",
+    label: "",
+    type: "text",
+    placeholder: "",
+    required: false,
   },
-  label: {
-    type: String,
-    default: "",
-  },
-  type: {
-    type: String,
-    default: "text",
-  },
-  placeholder: {
-    type: String,
-    default: "",
-  },
-  required: {
-    type: Boolean,
-    default: false,
-  },
-});
+);
 
-defineEmits(["update:modelValue"]);
+const emit = defineEmits<{
+  "update:modelValue": [value: string];
+}>();
+
+function onInput(event: Event): void {
+  const target = event.target as HTMLInputElement;
+  emit("update:modelValue", target.value);
+}
 </script>
 
 <template>
   <label
-    class="flex flex-col gap-1 text-sm text-slate-700"
+    class="field-wrap"
     v-bind="$attrs"
   >
-    <span v-if="label">{{ label }}</span>
+    <span
+      v-if="label"
+      class="field-label"
+    >{{ label }}</span>
     <input
-      class="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
+      class="field px-3 py-2.5"
       :type="type"
       :value="modelValue"
       :placeholder="placeholder"
       :required="required"
-      @input="$emit('update:modelValue', $event.target.value)"
+      @input="onInput"
     >
   </label>
 </template>

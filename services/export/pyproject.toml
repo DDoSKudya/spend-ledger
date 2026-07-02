@@ -1,6 +1,6 @@
 [project]
 name = "spend-ledger-export"
-version = "1.0.0"
+version = "1.1.0"
 description = "Spend Ledger Export Service"
 requires-python = ">=3.12"
 dependencies = [
@@ -15,7 +15,11 @@ dependencies = [
     "openpyxl>=3.1",
     "tenacity>=9.0",
     "python-multipart>=0.0.9",
+    "spend-ledger-common",
 ]
+
+[tool.uv.sources]
+spend-ledger-common = { path = "../../packages/spend-ledger-common" }
 
 [dependency-groups]
 dev = [
@@ -45,3 +49,13 @@ omit = ["app/main.py"]
 fail_under = 80
 show_missing = true
 skip_covered = true
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["../../packages/spend-ledger-common"]
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["../../packages/spend-ledger-common"]

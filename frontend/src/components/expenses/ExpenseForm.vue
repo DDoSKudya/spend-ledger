@@ -1,53 +1,41 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from "vue";
 
 import BaseButton from "@/components/ui/BaseButton.vue";
 import BaseInput from "@/components/ui/BaseInput.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
+import TagPill from "@/components/ui/TagPill.vue";
+import type { Category, Expense, ExpensePayload, Tag } from "@/types/models";
 import { todayIso } from "@/utils/format";
 import { toggleItem } from "@/utils/selection";
 
-const props = defineProps({
-  expense: {
-    type: Object,
-    default: null,
+interface ExpenseFormState {
+  amount: string | number;
+  category_id: string;
+  description: string;
+  expense_date: string;
+  tag_ids: string[];
+}
+
+const props = withDefaults(
+  defineProps<{
+    expense?: Expense | null;
+    categories?: Category[];
+    tags?: Tag[];
+  }>(),
+  {
+    expense: null,
+    categories: () => [],
+    tags: () => [],
   },
-  categories: {
-    type: Array,
-    default: () => [],
-  },
-  tags: {
-    type: Array,
-    default: () => [],
-  },
-});
-
-const emit = defineEmits(["save", "cancel"]);
-
-const form = ref(emptyForm());
-
-const isEdit = computed(() => props.expense !== null);
-
-watch(
-  () => props.expense,
-  (expense) => {
-    if (!expense) {
-      form.value = emptyForm();
-      return;
-    }
-
-    form.value = {
-      amount: expense.amount,
-      category_id: expense.category.id,
-      description: expense.description ?? "",
-      expense_date: expense.expense_date,
-      tag_ids: expense.tags.map((tag) => tag.id),
-    };
-  },
-  { immediate: true },
 );
 
-function emptyForm() {
+const emit = defineEmits<{
+  save: [payload: ExpensePayload];
+  cancel: [];
+}>();
+
+function emptyForm(): ExpenseFormState {
   return {
     amount: "",
     category_id: "",
@@ -57,11 +45,30 @@ function emptyForm() {
   };
 }
 
-function toggleTag(tagId) {
+const form = ref<ExpenseFormState>(emptyForm());
+const isEdit = computed(() => props.expense !== null);
+
+watch(
+  () => props.expense,
+  (expense) => {
+    form.value = expense
+      ? {
+          amount: expense.amount,
+          category_id: expense.category.id,
+          description: expense.description ?? "",
+          expense_date: expense.expense_date,
+          tag_ids: expense.tags.map((tag) => tag.id),
+        }
+      : emptyForm();
+  },
+  { immediate: true },
+);
+
+function toggleTag(tagId: string): void {
   form.value.tag_ids = toggleItem(form.value.tag_ids, tagId);
 }
 
-function submit() {
+function submit(): void {
   emit("save", {
     amount: form.value.amount,
     category_id: form.value.category_id,
@@ -74,7 +81,7 @@ function submit() {
 
 <template>
   <form
-    class="grid gap-4 sm:grid-cols-2"
+    class="form-grid form-grid--2"
     @submit.prevent="submit"
   >
     <BaseInput
@@ -85,7 +92,6 @@ function submit() {
       min="0.01"
       required
     />
-
     <BaseInput
       v-model="form.expense_date"
       label="Date"
@@ -120,22 +126,15 @@ function submit() {
     />
 
     <div class="sm:col-span-2">
-      <p class="mb-2 text-sm text-slate-700">
-        Tags
-      </p>
-      <div class="flex flex-wrap gap-2">
-        <button
+      <span class="field-label">Tags</span>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <TagPill
           v-for="tag in tags"
           :key="tag.id"
-          type="button"
-          class="rounded-full border px-3 py-1 text-sm transition"
-          :class="form.tag_ids.includes(tag.id)
-            ? 'border-slate-800 bg-slate-800 text-white'
-            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
-          @click="toggleTag(tag.id)"
-        >
-          {{ tag.name }}
-        </button>
+          :label="tag.name"
+          :active="form.tag_ids.includes(tag.id)"
+          @toggle="toggleTag(tag.id)"
+        />
       </div>
     </div>
 

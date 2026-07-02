@@ -1,27 +1,39 @@
-<script setup>
+<script setup lang="ts">
 import { ArrowDownTrayIcon } from "@heroicons/vue/24/outline";
 import { onMounted, ref } from "vue";
 
 import { getErrorMessage } from "@/api/errors";
-import AppLayout from "@/components/layout/AppLayout.vue";
 import BaseAlert from "@/components/ui/BaseAlert.vue";
 import BaseButton from "@/components/ui/BaseButton.vue";
 import BaseCard from "@/components/ui/BaseCard.vue";
 import BaseInput from "@/components/ui/BaseInput.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
+import TagPill from "@/components/ui/TagPill.vue";
 import { useCategories } from "@/composables/useCategories";
 import { useExport } from "@/composables/useExport";
 import { useTags } from "@/composables/useTags";
+import { useToast } from "@/composables/useToast";
+import type { ExportFilters, SelectOption } from "@/types/models";
 import { toggleItem } from "@/utils/selection";
+
+interface ExportFormFilters {
+  category_id: string;
+  tag_ids: string[];
+  date_from: string;
+  date_to: string;
+  search: string;
+}
 
 const { items: categories, load: loadCategories } = useCategories();
 const { items: tags, load: loadTags } = useTags();
 const { job, loading, polling, start, download } = useExport();
+const { show: showToast } = useToast();
 
 const error = ref("");
 const format = ref("csv");
-const filters = ref({
+const filters = ref<ExportFormFilters>({
   category_id: "",
   tag_ids: [],
   date_from: "",
@@ -29,7 +41,7 @@ const filters = ref({
   search: "",
 });
 
-const formatOptions = [
+const formatOptions: SelectOption[] = [
   { value: "csv", label: "CSV" },
   { value: "xlsx", label: "Excel (XLSX)" },
 ];
@@ -42,11 +54,11 @@ onMounted(async () => {
   }
 });
 
-function toggleTag(tagId) {
+function toggleTag(tagId: string): void {
   filters.value.tag_ids = toggleItem(filters.value.tag_ids, tagId);
 }
 
-function buildFilters() {
+function buildFilters(): ExportFilters {
   return {
     category_id: filters.value.category_id || null,
     tag_ids: filters.value.tag_ids,
@@ -60,19 +72,18 @@ async function handleStart() {
   error.value = "";
   try {
     await start({ format: format.value, filters: buildFilters() });
+    showToast("Export started");
   } catch (err) {
     error.value = getErrorMessage(err);
   }
 }
 
 async function handleDownload() {
-  if (!job.value) {
-    return;
-  }
-
+  if (!job.value) return;
   error.value = "";
   try {
     await download(job.value.download_url, job.value.job_id, job.value.format ?? format.value);
+    showToast("Download started");
   } catch (err) {
     error.value = getErrorMessage(err, "Download failed");
   }
@@ -80,140 +91,136 @@ async function handleDownload() {
 </script>
 
 <template>
-  <AppLayout>
-    <h1 class="mb-6 text-2xl font-semibold">
-      Export expenses
-    </h1>
+  <div>
+    <header class="view-head">
+      <div>
+        <h1 class="view-head__title">
+          Export
+        </h1>
+        <p class="view-head__meta">
+          Download filtered expenses
+        </p>
+      </div>
+    </header>
 
-    <p class="mb-6 text-sm text-slate-600">
-      Export expenses matching your filters. Add expenses on the Expenses page first if the list is empty.
-    </p>
+    <Transition name="motion-alert">
+      <BaseAlert
+        v-if="error"
+        variant="error"
+        class="mb-4"
+      >
+        {{ error }}
+      </BaseAlert>
+    </Transition>
 
-    <BaseAlert
-      v-if="error"
-      variant="error"
-      class="mb-4"
-    >
-      {{ error }}
-    </BaseAlert>
-
-    <BaseCard class="mb-6">
-      <div class="grid gap-4 sm:grid-cols-2">
-        <BaseSelect
-          v-model="format"
-          label="Format"
-          :options="formatOptions"
-        />
-
-        <BaseSelect
-          v-model="filters.category_id"
-          label="Category"
+    <div class="split-layout split-layout--reverse">
+      <BaseCard>
+        <form
+          class="stack"
+          @submit.prevent="handleStart"
         >
-          <option value="">
-            All categories
-          </option>
-          <option
-            v-for="category in categories"
-            :key="category.id"
-            :value="category.id"
+          <BaseSelect
+            v-model="format"
+            label="Format"
+            :options="formatOptions"
+          />
+          <BaseSelect
+            v-model="filters.category_id"
+            label="Category"
           >
-            {{ category.name }}
-          </option>
-        </BaseSelect>
-
-        <BaseInput
-          v-model="filters.date_from"
-          label="From"
-          type="date"
-        />
-
-        <BaseInput
-          v-model="filters.date_to"
-          label="To"
-          type="date"
-        />
-
-        <BaseInput
-          v-model="filters.search"
-          label="Search"
-          placeholder="Description"
-          class="sm:col-span-2"
-        />
-
-        <div class="sm:col-span-2">
-          <p class="mb-2 text-sm text-slate-700">
-            Tags (any)
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="tag in tags"
-              :key="tag.id"
-              type="button"
-              class="rounded-full border px-3 py-1 text-sm transition"
-              :class="filters.tag_ids.includes(tag.id)
-                ? 'border-slate-800 bg-slate-800 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
-              @click="toggleTag(tag.id)"
+            <option value="">
+              All categories
+            </option>
+            <option
+              v-for="category in categories"
+              :key="category.id"
+              :value="category.id"
             >
-              {{ tag.name }}
-            </button>
+              {{ category.name }}
+            </option>
+          </BaseSelect>
+          <BaseInput
+            v-model="filters.date_from"
+            label="From"
+            type="date"
+          />
+          <BaseInput
+            v-model="filters.date_to"
+            label="To"
+            type="date"
+          />
+          <BaseInput
+            v-model="filters.search"
+            label="Search"
+            placeholder="Description"
+          />
+
+          <div>
+            <span class="field-label">Tags</span>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <TagPill
+                v-for="tag in tags"
+                :key="tag.id"
+                :label="tag.name"
+                :active="filters.tag_ids.includes(tag.id)"
+                @toggle="toggleTag(tag.id)"
+              />
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="mt-6">
-        <BaseButton
-          :disabled="loading || polling"
-          @click="handleStart"
-        >
-          <ArrowDownTrayIcon class="size-4" />
-          {{ loading ? "Starting..." : "Start export" }}
-        </BaseButton>
-      </div>
-    </BaseCard>
-
-    <BaseCard v-if="job">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p class="text-sm text-slate-600">
-            Job ID
-          </p>
-          <p class="font-mono text-sm">
-            {{ job.job_id }}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <span
-            class="rounded-full px-3 py-1 text-sm capitalize"
-            :class="{
-              'bg-amber-100 text-amber-800': job.status === 'pending' || job.status === 'processing',
-              'bg-green-100 text-green-800': job.status === 'done',
-              'bg-red-100 text-red-800': job.status === 'failed',
-            }"
-          >
-            {{ job.status }}
-          </span>
-
-          <LoadingSpinner v-if="polling" />
 
           <BaseButton
-            v-if="job.status === 'done'"
-            @click="handleDownload"
+            type="submit"
+            :disabled="loading || polling"
           >
-            <ArrowDownTrayIcon class="size-4" />
-            Download
+            <ArrowDownTrayIcon class="icon-md" />
+            {{ loading ? "Starting..." : "Start export" }}
           </BaseButton>
-        </div>
-      </div>
+        </form>
+      </BaseCard>
 
-      <BaseAlert
-        v-if="job.status === 'failed'"
-        variant="error"
-        class="mt-4"
-      >
-        {{ job.error_message || "Export failed" }}
-      </BaseAlert>
-    </BaseCard>
-  </AppLayout>
+      <BaseCard>
+        <template v-if="job">
+          <div class="stack stack--sm">
+            <div>
+              <span class="field-label">Status</span>
+              <div class="mt-2 flex items-center gap-2">
+                <StatusBadge :status="job.status" />
+                <LoadingSpinner v-if="polling" />
+              </div>
+            </div>
+            <div>
+              <span class="field-label">Job ID</span>
+              <p class="mono mt-1 text-sm">
+                {{ job.job_id }}
+              </p>
+            </div>
+            <BaseButton
+              v-if="job.status === 'done'"
+              @click="handleDownload"
+            >
+              <ArrowDownTrayIcon class="icon-md" />
+              Download
+            </BaseButton>
+            <BaseAlert
+              v-if="job.status === 'failed'"
+              variant="error"
+            >
+              {{ job.error_message || "Export failed" }}
+            </BaseAlert>
+          </div>
+        </template>
+        <div
+          v-else
+          class="empty"
+        >
+          <p class="empty__title">
+            No export yet
+          </p>
+          <p class="empty__text">
+            Configure filters and start an export.
+          </p>
+        </div>
+      </BaseCard>
+    </div>
+  </div>
 </template>

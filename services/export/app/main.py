@@ -4,11 +4,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 
 from app.core.config import settings
-from app.core.error_handlers import register_error_handlers
-from app.core.logging import setup_logging
-from app.core.middleware import RequestIdMiddleware
 from app.jobs.router import router as exports_router
 from app.jobs.storage import JobStore
+from spend_ledger_common.error_handlers import register_error_handlers
+from spend_ledger_common.exceptions import AppError
+from spend_ledger_common.logging import setup_logging
+from spend_ledger_common.middleware import (
+    register_request_id_middleware,
+    register_request_log_middleware,
+)
 
 
 @asynccontextmanager
@@ -21,7 +25,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 register_error_handlers(app)
-app.add_middleware(RequestIdMiddleware)
+register_request_log_middleware(app)
+register_request_id_middleware(app, service_name="export")
 app.include_router(exports_router)
 
 
@@ -33,7 +38,5 @@ async def health() -> dict[str, str]:
 @app.get("/ready")
 async def ready(request: Request) -> dict[str, str]:
     if not request.app.state.job_store.ping():
-        from app.core.exceptions import AppError
-
         raise AppError("Redis is unavailable", "service_unavailable", 503)
     return {"status": "ok"}

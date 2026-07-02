@@ -1,40 +1,36 @@
-<script setup>
-import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/vue/24/outline";
+<script setup lang="ts">
+import { PlusIcon } from "@heroicons/vue/24/outline";
 import { onMounted, ref } from "vue";
 
 import { getErrorMessage } from "@/api/errors";
 import ExpenseFilters from "@/components/expenses/ExpenseFilters.vue";
 import ExpenseForm from "@/components/expenses/ExpenseForm.vue";
-import AppLayout from "@/components/layout/AppLayout.vue";
+import ExpenseListItem from "@/components/expenses/ExpenseListItem.vue";
 import BaseAlert from "@/components/ui/BaseAlert.vue";
 import BaseButton from "@/components/ui/BaseButton.vue";
 import BaseCard from "@/components/ui/BaseCard.vue";
+import BaseDrawer from "@/components/ui/BaseDrawer.vue";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
+import { useConfirm } from "@/composables/useConfirm";
 import { useCategories } from "@/composables/useCategories";
 import { useExpenses } from "@/composables/useExpenses";
 import { useTags } from "@/composables/useTags";
-import { formatDate, formatMoney } from "@/utils/format";
+import { useToast } from "@/composables/useToast";
+import type { Expense, ExpensePayload } from "@/types/models";
 
 const {
-  items,
-  total,
-  pages,
-  loading,
-  filters,
-  load,
-  create,
-  update,
-  remove,
-  setPage,
-  resetFilters,
+  items, total, pages, loading, filters,
+  load, create, update, remove, setPage, resetFilters,
 } = useExpenses();
 
 const { items: categories, load: loadCategories } = useCategories();
 const { items: tags, load: loadTags } = useTags();
+const { confirm } = useConfirm();
+const { show: showToast } = useToast();
 
 const error = ref("");
 const showForm = ref(false);
-const editingExpense = ref(null);
+const editingExpense = ref<Expense | null>(null);
 
 onMounted(async () => {
   try {
@@ -49,7 +45,7 @@ function openCreate() {
   showForm.value = true;
 }
 
-function openEdit(expense) {
+function openEdit(expense: Expense): void {
   editingExpense.value = expense;
   showForm.value = true;
 }
@@ -59,13 +55,15 @@ function closeForm() {
   editingExpense.value = null;
 }
 
-async function handleSave(payload) {
+async function handleSave(payload: ExpensePayload): Promise<void> {
   error.value = "";
   try {
     if (editingExpense.value) {
       await update(editingExpense.value.id, payload);
+      showToast("Expense updated");
     } else {
       await create(payload);
+      showToast("Expense created");
     }
     closeForm();
   } catch (err) {
@@ -73,14 +71,19 @@ async function handleSave(payload) {
   }
 }
 
-async function handleDelete(expense) {
-  if (!window.confirm(`Delete expense "${expense.description || expense.amount}"?`)) {
-    return;
-  }
+async function handleDelete(expense: Expense): Promise<void> {
+  const accepted = await confirm({
+    title: "Delete expense",
+    message: `Delete "${expense.description || expense.amount}"?`,
+    confirmLabel: "Delete",
+    danger: true,
+  });
+  if (!accepted) return;
 
   error.value = "";
   try {
     await remove(expense.id);
+    showToast("Expense deleted");
   } catch (err) {
     error.value = getErrorMessage(err);
   }
@@ -105,7 +108,7 @@ async function handleReset() {
   }
 }
 
-async function handlePageChange(page) {
+async function handlePageChange(page: number): Promise<void> {
   error.value = "";
   try {
     await setPage(page);
@@ -116,47 +119,121 @@ async function handlePageChange(page) {
 </script>
 
 <template>
-  <AppLayout>
-    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <header class="view-head">
       <div>
-        <h1 class="text-2xl font-semibold">
+        <h1 class="view-head__title">
           Expenses
         </h1>
-        <p class="text-sm text-slate-600">
-          {{ total }} total
+        <p class="view-head__meta">
+          {{ total }} records
         </p>
       </div>
       <BaseButton @click="openCreate">
-        <PlusIcon class="size-4" />
+        <PlusIcon class="icon-md" />
         Add expense
       </BaseButton>
+    </header>
+
+    <Transition name="motion-alert">
+      <BaseAlert
+        v-if="error"
+        variant="error"
+        class="mb-4"
+      >
+        {{ error }}
+      </BaseAlert>
+    </Transition>
+
+    <div class="split-layout mb-4">
+      <BaseCard class="filters-panel">
+        <ExpenseFilters
+          v-model="filters"
+          :categories="categories"
+          :tags="tags"
+          @apply="handleApply"
+          @reset="handleReset"
+        />
+      </BaseCard>
+
+      <BaseCard>
+        <Transition
+          name="motion-body"
+          mode="out-in"
+        >
+          <div
+            v-if="loading"
+            key="loading"
+            class="flex justify-center py-12"
+          >
+            <LoadingSpinner />
+          </div>
+
+          <div
+            v-else-if="items.length === 0"
+            key="empty"
+            class="empty"
+          >
+            <p class="empty__title">
+              No expenses yet
+            </p>
+            <p class="empty__text">
+              Add your first expense to start tracking.
+            </p>
+            <BaseButton
+              class="mt-4"
+              @click="openCreate"
+            >
+              <PlusIcon class="icon-md" />
+              Add expense
+            </BaseButton>
+          </div>
+
+          <div
+            v-else
+            key="list"
+            class="list-scroll"
+          >
+            <ExpenseListItem
+              v-for="expense in items"
+              :key="expense.id"
+              :expense="expense"
+              @edit="openEdit"
+              @delete="handleDelete"
+            />
+
+            <div
+              v-if="pages > 1"
+              class="pager"
+            >
+              <span>Page {{ filters.page }} of {{ pages }}</span>
+              <div class="flex gap-2">
+                <BaseButton
+                  variant="secondary"
+                  :disabled="filters.page <= 1"
+                  @click="handlePageChange(filters.page - 1)"
+                >
+                  Previous
+                </BaseButton>
+                <BaseButton
+                  variant="secondary"
+                  :disabled="filters.page >= pages"
+                  @click="handlePageChange(filters.page + 1)"
+                >
+                  Next
+                </BaseButton>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </BaseCard>
     </div>
 
-    <BaseAlert
-      v-if="error"
-      variant="error"
-      class="mb-4"
+    <BaseDrawer
+      v-model="showForm"
+      :title="editingExpense ? 'Edit expense' : 'New expense'"
+      @close="closeForm"
     >
-      {{ error }}
-    </BaseAlert>
-
-    <BaseCard class="mb-6">
-      <ExpenseFilters
-        v-model="filters"
-        :categories="categories"
-        :tags="tags"
-        @apply="handleApply"
-        @reset="handleReset"
-      />
-    </BaseCard>
-
-    <BaseCard
-      v-if="showForm"
-      class="mb-6"
-    >
-      <h2 class="mb-4 text-lg font-medium">
-        {{ editingExpense ? "Edit expense" : "New expense" }}
-      </h2>
       <ExpenseForm
         :expense="editingExpense"
         :categories="categories"
@@ -164,122 +241,6 @@ async function handlePageChange(page) {
         @save="handleSave"
         @cancel="closeForm"
       />
-    </BaseCard>
-
-    <BaseCard>
-      <div
-        v-if="loading"
-        class="flex justify-center py-8"
-      >
-        <LoadingSpinner />
-      </div>
-
-      <div
-        v-else-if="items.length === 0"
-        class="py-8 text-center text-slate-500"
-      >
-        No expenses yet. Add one above to start tracking spending.
-      </div>
-
-      <div
-        v-else
-        class="overflow-x-auto"
-      >
-        <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-slate-200 text-slate-600">
-            <tr>
-              <th class="px-2 py-3 font-medium">
-                Date
-              </th>
-              <th class="px-2 py-3 font-medium">
-                Amount
-              </th>
-              <th class="px-2 py-3 font-medium">
-                Category
-              </th>
-              <th class="px-2 py-3 font-medium">
-                Description
-              </th>
-              <th class="px-2 py-3 font-medium">
-                Tags
-              </th>
-              <th class="px-2 py-3 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="expense in items"
-              :key="expense.id"
-              class="border-b border-slate-100"
-            >
-              <td class="px-2 py-3">
-                {{ formatDate(expense.expense_date) }}
-              </td>
-              <td class="px-2 py-3 font-medium">
-                {{ formatMoney(expense.amount) }}
-              </td>
-              <td class="px-2 py-3">
-                {{ expense.category.name }}
-              </td>
-              <td class="px-2 py-3">
-                {{ expense.description || "—" }}
-              </td>
-              <td class="px-2 py-3">
-                <span
-                  v-for="tag in expense.tags"
-                  :key="tag.id"
-                  class="mr-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs"
-                >
-                  {{ tag.name }}
-                </span>
-              </td>
-              <td class="px-2 py-3 text-right">
-                <div class="flex justify-end gap-2">
-                  <BaseButton
-                    variant="secondary"
-                    @click="openEdit(expense)"
-                  >
-                    <PencilSquareIcon class="size-4" />
-                    Edit
-                  </BaseButton>
-                  <BaseButton
-                    variant="danger"
-                    @click="handleDelete(expense)"
-                  >
-                    <TrashIcon class="size-4" />
-                    Delete
-                  </BaseButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div
-        v-if="pages > 1"
-        class="mt-4 flex items-center justify-between"
-      >
-        <p class="text-sm text-slate-600">
-          Page {{ filters.page }} of {{ pages }}
-        </p>
-        <div class="flex gap-2">
-          <BaseButton
-            variant="secondary"
-            :disabled="filters.page <= 1"
-            @click="handlePageChange(filters.page - 1)"
-          >
-            Previous
-          </BaseButton>
-          <BaseButton
-            variant="secondary"
-            :disabled="filters.page >= pages"
-            @click="handlePageChange(filters.page + 1)"
-          >
-            Next
-          </BaseButton>
-        </div>
-      </div>
-    </BaseCard>
-  </AppLayout>
+    </BaseDrawer>
+  </div>
 </template>

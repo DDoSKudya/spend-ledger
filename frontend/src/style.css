@@ -1,2 +1,13 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+
+@import "./styles/tokens.css";
+@import "./styles/motion.css";
+@import "./styles/layout.css";
+@import "./styles/components.css";
+@import "./styles/transitions.css";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
+}

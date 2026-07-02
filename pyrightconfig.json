@@ -1,15 +1,32 @@
 {
-  "venvPath": ".",
-  "venv": ".venv",
   "exclude": [
     "**/tests",
     "**/.venv",
     "**/__pycache__"
   ],
+  "extraPaths": [
+    "packages/spend-ledger-common"
+  ],
   "executionEnvironments": [
-    { "root": "services/bff" },
-    { "root": "services/auth" },
-    { "root": "services/ledger" },
-    { "root": "services/export" }
+    {
+      "root": "services/bff",
+      "extraPaths": ["packages/spend-ledger-common"]
+    },
+    {
+      "root": "services/auth",
+      "extraPaths": ["packages/spend-ledger-common"]
+    },
+    {
+      "root": "services/ledger",
+      "extraPaths": ["packages/spend-ledger-common"]
+    },
+    {
+      "root": "services/export",
+      "extraPaths": ["packages/spend-ledger-common"]
+    },
+    {
+      "root": "packages/spend-ledger-common",
+      "extraPaths": ["packages/spend-ledger-common"]
+    }
   ]
 }

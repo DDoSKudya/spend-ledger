@@ -4,11 +4,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 
 from app.core.config import settings
-from app.core.database import create_engine, create_session_factory
-from app.core.error_handlers import register_error_handlers
-from app.core.logging import setup_logging
-from app.core.middleware import DbSessionMiddleware, RequestIdMiddleware, RequestLogMiddleware
+from app.core.database import create_engine
+from app.core.middleware import auth_needs_db_session
 from app.users.router import router as users_router
+from spend_ledger_common.database import check_database_ready, create_session_factory
+from spend_ledger_common.error_handlers import register_error_handlers
+from spend_ledger_common.logging import setup_logging
+from spend_ledger_common.middleware import (
+    register_db_session_middleware,
+    register_request_id_middleware,
+    register_request_log_middleware,
+)
 
 
 @asynccontextmanager
@@ -23,10 +29,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 register_error_handlers(app)
-app.add_middleware(RequestLogMiddleware)
-app.add_middleware(RequestIdMiddleware)
-app.add_middleware(DbSessionMiddleware)
-
+register_db_session_middleware(app, needs_session=auth_needs_db_session)
+register_request_id_middleware(app, service_name="auth")
+register_request_log_middleware(app)
 
 app.include_router(users_router)
 
@@ -38,9 +43,5 @@ async def health() -> dict[str, str]:
 
 @app.get("/ready")
 async def ready(request: Request) -> dict[str, str]:
-    from sqlalchemy import text
-
-    session_factory = request.app.state.session_factory
-    async with session_factory() as session:
-        await session.execute(text("SELECT 1"))
+    await check_database_ready(request.app.state.session_factory)
     return {"status": "ok"}

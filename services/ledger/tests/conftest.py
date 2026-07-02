@@ -90,3 +90,49 @@ async def integration_client_user_b(engine) -> AsyncIterator[AsyncClient]:
         headers=headers,
     ) as ac:
         yield ac
+
+
+@pytest.fixture
+async def expense_dataset(integration_client):
+    client = integration_client
+    food = (await client.post("/internal/v1/categories", json={"name": "Food"})).json()
+    transport = (await client.post("/internal/v1/categories", json={"name": "Transport"})).json()
+    weekly = (await client.post("/internal/v1/tags", json={"name": "weekly"})).json()
+    urgent = (await client.post("/internal/v1/tags", json={"name": "urgent"})).json()
+
+    async def add_expense(**payload):
+        response = await client.post("/internal/v1/expenses", json=payload)
+        assert response.status_code == 201
+        return response.json()
+
+    groceries = await add_expense(
+        amount="42.50",
+        category_id=food["id"],
+        tag_ids=[weekly["id"]],
+        description="groceries",
+        expense_date="2026-06-15",
+    )
+    taxi = await add_expense(
+        amount="15.00",
+        category_id=transport["id"],
+        tag_ids=[urgent["id"]],
+        description="taxi ride",
+        expense_date="2026-06-20",
+    )
+    lunch = await add_expense(
+        amount="8.00",
+        category_id=food["id"],
+        tag_ids=[weekly["id"], urgent["id"]],
+        description="lunch",
+        expense_date="2026-07-01",
+    )
+
+    return {
+        "food_id": food["id"],
+        "transport_id": transport["id"],
+        "weekly_id": weekly["id"],
+        "urgent_id": urgent["id"],
+        "groceries_id": groceries["id"],
+        "taxi_id": taxi["id"],
+        "lunch_id": lunch["id"],
+    }

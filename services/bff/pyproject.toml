@@ -1,6 +1,6 @@
 [project]
 name = "spend-ledger-bff"
-version = "1.0.0"
+version = "1.1.0"
 description = "Spend Ledger BFF"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,7 +12,11 @@ dependencies = [
     "structlog>=24.4",
     "pyjwt>=2.10",
     "python-multipart>=0.0.9",
+    "spend-ledger-common",
 ]
+
+[tool.uv.sources]
+spend-ledger-common = { path = "../../packages/spend-ledger-common" }
 
 [dependency-groups]
 dev = [
@@ -46,3 +50,13 @@ omit = [
 fail_under = 75
 show_missing = true
 skip_covered = true
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["../../packages/spend-ledger-common"]
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["../../packages/spend-ledger-common"]

@@ -6,12 +6,13 @@ from fastapi.responses import FileResponse
 from app.core.deps import CurrentUserId
 from app.jobs import service
 from app.jobs.schemas import EXPORT_MEDIA_TYPES, ExportCreate, ExportJobRead
-from app.jobs.storage import JobStoreProtocol
+from app.jobs.storage import JobStoreBase
+from spend_ledger_common.middleware import get_request_id
 
 router = APIRouter(prefix="/internal/v1/exports", tags=["exports"])
 
 
-def _store(request: Request) -> JobStoreProtocol:
+def _store(request: Request) -> JobStoreBase:
     return request.app.state.job_store
 
 
@@ -21,7 +22,12 @@ async def create_export(
     user_id: CurrentUserId,
     request: Request,
 ) -> ExportJobRead:
-    return service.create_export_job(_store(request), user_id, data)
+    return service.create_export_job(
+        _store(request),
+        user_id,
+        data,
+        request_id=get_request_id(request),
+    )
 
 
 @router.get("/{job_id}", response_model=ExportJobRead)
