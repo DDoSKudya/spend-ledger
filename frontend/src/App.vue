@@ -7,7 +7,15 @@ import ToastHost from "@/components/ToastHost.vue";
 
 const route = useRoute();
 
-const shellKey = computed(() => route.meta.shell ?? route.matched[0]?.path ?? route.path);
+const viewKey = computed(() => {
+  const shell = route.meta.shell ?? route.matched[0]?.path ?? route.path;
+  // App shell hosts its own RouterView; auth routes need a per-path key so
+  // register → login remounts instead of reusing the same transition slot.
+  if (shell === "app") {
+    return shell;
+  }
+  return route.fullPath;
+});
 </script>
 
 <template>
@@ -18,7 +26,7 @@ const shellKey = computed(() => route.meta.shell ?? route.matched[0]?.path ?? ro
     >
       <component
         :is="Component"
-        :key="shellKey"
+        :key="viewKey"
       />
     </Transition>
   </RouterView>
