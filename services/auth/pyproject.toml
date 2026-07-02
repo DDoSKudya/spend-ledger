@@ -18,7 +18,11 @@ dependencies = [
     "pwdlib[argon2]>=0.2",
     "email-validator>=2.2",
     "python-multipart>=0.0.9",
+    "spend-ledger-common",
 ]
+
+[tool.uv.sources]
+spend-ledger-common = { path = "../../packages/spend-ledger-common" }
 
 [dependency-groups]
 dev = [
@@ -48,3 +52,13 @@ omit = ["app/main.py"]
 fail_under = 75
 show_missing = true
 skip_covered = true
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["../../packages/spend-ledger-common"]
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+extraPaths = ["../../packages/spend-ledger-common"]

@@ -9,10 +9,10 @@ from sqlalchemy.orm import joinedload, selectinload
 from app.categories.service import get_owned_category
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.pagination import build_page
-from app.core.session import get_session
 from app.expenses.models import Expense, ExpenseTag
 from app.expenses.schemas import ExpenseCreate, ExpensePage, ExpenseRead, ExpenseUpdate
 from app.tags.models import Tag
+from spend_ledger_common.session import get_session
 
 SORT_COLUMNS = {
     "expense_date": Expense.expense_date,
@@ -53,6 +53,10 @@ def _expense_load_options():
     )
 
 
+def _expense_select():
+    return select(Expense).options(*_expense_load_options())
+
+
 def _apply_filters(stmt, user_id: UUID, filters: ExpenseListFilters):
     stmt = stmt.where(Expense.user_id == user_id)
     if filters.category_id is not None:
@@ -87,8 +91,7 @@ async def list_expenses(user_id: UUID, filters: ExpenseListFilters) -> ExpensePa
     offset = (filters.page - 1) * filters.size
 
     list_stmt = (
-        _apply_filters(select(Expense), user_id, filters)
-        .options(*_expense_load_options())
+        _apply_filters(_expense_select(), user_id, filters)
         .order_by(order, Expense.created_at.desc())
         .offset(offset)
         .limit(filters.size)
@@ -105,6 +108,7 @@ async def create_expense(user_id: UUID, data: ExpenseCreate) -> ExpenseRead:
     expense = Expense(
         user_id=user_id,
         category_id=category.id,
+        category=category,
         amount=Decimal(data.amount),
         description=data.description,
         expense_date=data.expense_date,
@@ -112,7 +116,7 @@ async def create_expense(user_id: UUID, data: ExpenseCreate) -> ExpenseRead:
     )
     session.add(expense)
     await session.flush()
-    return await get_expense(user_id, expense.id)
+    return ExpenseRead.model_validate(expense)
 
 
 async def get_expense(user_id: UUID, expense_id: UUID) -> ExpenseRead:
@@ -126,13 +130,14 @@ async def update_expense(user_id: UUID, expense_id: UUID, data: ExpenseUpdate) -
     category = await get_owned_category(user_id, data.category_id)
     tags = await _get_owned_tags(user_id, data.tag_ids)
     expense.category_id = category.id
+    expense.category = category
     expense.amount = Decimal(data.amount)
     expense.description = data.description
     expense.expense_date = data.expense_date
     expense.updated_at = datetime.now(UTC)
     expense.tags = tags
     await session.flush()
-    return await get_expense(user_id, expense_id)
+    return ExpenseRead.model_validate(expense)
 
 
 async def delete_expense(user_id: UUID, expense_id: UUID) -> None:
@@ -144,9 +149,7 @@ async def delete_expense(user_id: UUID, expense_id: UUID) -> None:
 async def _get_owned_expense(user_id: UUID, expense_id: UUID) -> Expense:
     session = get_session()
     expense = await session.scalar(
-        select(Expense)
-        .where(Expense.id == expense_id, Expense.user_id == user_id)
-        .options(*_expense_load_options())
+        _expense_select().where(Expense.id == expense_id, Expense.user_id == user_id)
     )
     if expense is None:
         raise NotFoundError("expense")

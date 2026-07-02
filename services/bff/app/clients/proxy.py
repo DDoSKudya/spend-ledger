@@ -5,24 +5,10 @@ from httpx import AsyncClient, HTTPError
 
 from app.core.config import settings
 from app.core.exceptions import InvalidUpstreamResponseError
+from spend_ledger_common.constants import default_http_error_code
+from spend_ledger_common.middleware import get_request_id
 
 FORWARD_REQUEST_HEADERS = frozenset({"accept", "authorization", "content-type"})
-
-_DEFAULT_CODES = {
-    400: "bad_request",
-    401: "unauthorized",
-    403: "forbidden",
-    404: "not_found",
-    409: "conflict",
-    422: "validation_error",
-    500: "internal_error",
-    502: "bad_gateway",
-    503: "service_unavailable",
-}
-
-
-def _default_code(status_code: int) -> str:
-    return _DEFAULT_CODES.get(status_code, "error")
 
 
 def _normalize_error_body(status_code: int, content: bytes, content_type: str | None) -> bytes:
@@ -30,7 +16,7 @@ def _normalize_error_body(status_code: int, content: bytes, content_type: str | 
         return content
 
     fallback = json.dumps(
-        {"detail": "Upstream error", "code": _default_code(status_code)},
+        {"detail": "Upstream error", "code": default_http_error_code(status_code)},
     ).encode()
 
     if not content_type or "application/json" not in content_type.lower():
@@ -53,7 +39,7 @@ def _normalize_error_body(status_code: int, content: bytes, content_type: str | 
 
     normalized: dict[str, object] = {
         "detail": detail,
-        "code": body.get("code", _default_code(status_code)),
+        "code": body.get("code", default_http_error_code(status_code)),
     }
     if "errors" in body:
         normalized["errors"] = body["errors"]
@@ -62,7 +48,7 @@ def _normalize_error_body(status_code: int, content: bytes, content_type: str | 
 
 def _build_headers(request: Request) -> dict[str, str]:
     headers: dict[str, str] = {}
-    request_id = request.headers.get("X-Request-Id")
+    request_id = get_request_id(request)
     if request_id:
         headers["X-Request-Id"] = request_id
 

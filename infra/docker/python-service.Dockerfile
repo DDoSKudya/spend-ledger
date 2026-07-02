@@ -12,10 +12,13 @@ WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
-
-COPY app ./app
+ARG SERVICE_DIR
+COPY packages/spend-ledger-common /packages/spend-ledger-common
+COPY ${SERVICE_DIR}/pyproject.toml ${SERVICE_DIR}/uv.lock ./
+RUN sed -i 's|../../packages/spend-ledger-common|/packages/spend-ledger-common|g' pyproject.toml uv.lock \
+    && uv sync --frozen --no-dev \
+    && uv pip install --editable /packages/spend-ledger-common
+COPY ${SERVICE_DIR}/app ./app
 
 ARG PORT=8000
 ENV PORT=${PORT}

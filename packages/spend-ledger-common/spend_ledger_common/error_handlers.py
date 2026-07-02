@@ -2,18 +2,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions import AppError
-
-
-def _default_code(status_code: int) -> str:
-    return {
-        400: "bad_request",
-        401: "unauthorized",
-        403: "forbidden",
-        404: "not_found",
-        409: "conflict",
-        422: "validation_error",
-    }.get(status_code, "error")
+from spend_ledger_common.constants import default_http_error_code
+from spend_ledger_common.exceptions import AppError
 
 
 def error_response_for(exc: AppError) -> JSONResponse:
@@ -33,10 +23,10 @@ def register_error_handlers(app: FastAPI) -> None:
         detail = exc.detail
         if isinstance(detail, dict):
             message = str(detail.get("detail", detail))
-            code = str(detail.get("code", _default_code(exc.status_code)))
+            code = str(detail.get("code", default_http_error_code(exc.status_code)))
         else:
             message = str(detail)
-            code = _default_code(exc.status_code)
+            code = default_http_error_code(exc.status_code)
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": message, "code": code},

@@ -4,9 +4,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import DuplicateNameError, NotFoundError
-from app.core.session import get_session
 from app.tags.models import Tag
 from app.tags.schemas import TagCreate, TagRead, TagUpdate
+from spend_ledger_common.session import get_session
 
 
 async def list_tags(user_id: UUID) -> list[TagRead]:

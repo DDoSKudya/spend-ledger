@@ -6,13 +6,13 @@ import structlog
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
 from app.jobs.schemas import ExportCreate, ExportFormat, ExportJobRead, JobRecord
-from app.jobs.storage import JobStoreProtocol
+from app.jobs.storage import JobStoreBase
 from app.jobs.task import EXPORT_TASK_NAME, celery_app
 
 logger = structlog.get_logger()
 
 
-def _owned_job(store: JobStoreProtocol, job_id: UUID, user_id: UUID) -> JobRecord:
+def _owned_job(store: JobStoreBase, job_id: UUID, user_id: UUID) -> JobRecord:
     record = store.get(job_id)
     if record is None or record.user_id != user_id:
         raise NotFoundError("export job")
@@ -20,9 +20,11 @@ def _owned_job(store: JobStoreProtocol, job_id: UUID, user_id: UUID) -> JobRecor
 
 
 def create_export_job(
-    store: JobStoreProtocol,
+    store: JobStoreBase,
     user_id: UUID,
     data: ExportCreate,
+    *,
+    request_id: str | None = None,
 ) -> ExportJobRead:
     record = store.create(
         user_id=user_id,
@@ -37,17 +39,18 @@ def create_export_job(
             data.filters.model_dump(mode="json"),
             data.format.value,
         ],
+        kwargs={"request_id": request_id},
     )
     logger.info("export_job_enqueued", job_id=str(record.job_id), format=data.format)
     return record.to_read_model()
 
 
-def get_export_job(store: JobStoreProtocol, user_id: UUID, job_id: UUID) -> ExportJobRead:
+def get_export_job(store: JobStoreBase, user_id: UUID, job_id: UUID) -> ExportJobRead:
     return _owned_job(store, job_id, user_id).to_read_model()
 
 
 def resolve_export_file(
-    store: JobStoreProtocol,
+    store: JobStoreBase,
     user_id: UUID,
     job_id: UUID,
 ) -> tuple[Path, ExportFormat]:

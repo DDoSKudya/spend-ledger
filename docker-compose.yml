@@ -51,13 +51,15 @@ services:
 
   bff:
     build:
-      context: ./services/bff
-      dockerfile: ../../infra/docker/python-service.Dockerfile
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
       args:
+        SERVICE_DIR: services/bff
         PORT: "8000"
     expose:
       - "8000"
     volumes:
+      - ./packages/spend-ledger-common:/packages/spend-ledger-common
       - ./services/bff/app:/app/app
       - ./services/bff/tests:/app/tests
     environment:
@@ -98,11 +100,13 @@ services:
 
   auth-service:
     build:
-      context: ./services/auth
-      dockerfile: ../../infra/docker/python-service.Dockerfile
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
       args:
+        SERVICE_DIR: services/auth
         PORT: "8001"
     volumes:
+      - ./packages/spend-ledger-common:/packages/spend-ledger-common
       - ./services/auth/app:/app/app
       - ./services/auth/tests:/app/tests
       - ./services/auth/alembic:/app/alembic
@@ -139,13 +143,15 @@ services:
 
   ledger-service:
     build:
-      context: ./services/ledger
-      dockerfile: ../../infra/docker/python-service.Dockerfile
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
       args:
+        SERVICE_DIR: services/ledger
         PORT: "8002"
     expose:
       - "8002"
     volumes:
+      - ./packages/spend-ledger-common:/packages/spend-ledger-common
       - ./services/ledger/app:/app/app
       - ./services/ledger/tests:/app/tests
       - ./services/ledger/alembic:/app/alembic
@@ -236,11 +242,13 @@ services:
   export-api:
     profiles: [export]
     build:
-      context: ./services/export
-      dockerfile: ../../infra/docker/python-service.Dockerfile
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
       args:
+        SERVICE_DIR: services/export
         PORT: "8003"
     volumes:
+      - ./packages/spend-ledger-common:/packages/spend-ledger-common
       - ./services/export/app:/app/app
       - ./services/export/tests:/app/tests
       - export_files:/data/exports
@@ -272,12 +280,14 @@ services:
   export-worker:
     profiles: [export]
     build:
-      context: ./services/export
-      dockerfile: ../../infra/docker/python-service.Dockerfile
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
       args:
+        SERVICE_DIR: services/export
         PORT: "8003"
     command: ["uv", "run", "celery", "-A", "app.jobs.task:celery_app", "worker", "--loglevel=info"]
     volumes:
+      - ./packages/spend-ledger-common:/packages/spend-ledger-common
       - ./services/export/app:/app/app
       - ./services/export/tests:/app/tests
       - export_files:/data/exports

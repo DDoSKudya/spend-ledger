@@ -11,6 +11,8 @@ Thumbs.db
 *.swo
 *~
 
+# Pyright/Basedpyright project configs (pyrightconfig.json) are committed on purpose.
+
 # Environment (repo root and per-service)
 .env
 .env.*

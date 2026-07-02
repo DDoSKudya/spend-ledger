@@ -1,14 +1,4 @@
-class AppError(Exception):
-    def __init__(self, message: str, code: str, status_code: int) -> None:
-        self.message = message
-        self.code = code
-        self.status_code = status_code
-        super().__init__(message)
-
-
-class UnauthorizedError(AppError):
-    def __init__(self, message: str = "Unauthorized", code: str = "unauthorized") -> None:
-        super().__init__(message, code, 401)
+from spend_ledger_common.exceptions import AppError
 
 
 class DuplicateEmailError(AppError):
@@ -24,6 +14,11 @@ class InvalidCredentialsError(AppError):
 class InvalidTokenError(AppError):
     def __init__(self, code: str = "invalid_token") -> None:
         super().__init__("Invalid or expired token", code, 401)
+
+
+class UnauthorizedError(AppError):
+    def __init__(self, message: str = "Unauthorized", code: str = "unauthorized") -> None:
+        super().__init__(message, code, 401)
 
 
 class UserNotFoundError(AppError):

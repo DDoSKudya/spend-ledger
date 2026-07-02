@@ -11,52 +11,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
-async def expense_dataset(integration_client):
-    client = integration_client
-    food = (await client.post("/internal/v1/categories", json={"name": "Food"})).json()
-    transport = (await client.post("/internal/v1/categories", json={"name": "Transport"})).json()
-    weekly = (await client.post("/internal/v1/tags", json={"name": "weekly"})).json()
-    urgent = (await client.post("/internal/v1/tags", json={"name": "urgent"})).json()
-
-    async def add_expense(**payload):
-        response = await client.post("/internal/v1/expenses", json=payload)
-        assert response.status_code == 201
-        return response.json()
-
-    groceries = await add_expense(
-        amount="42.50",
-        category_id=food["id"],
-        tag_ids=[weekly["id"]],
-        description="groceries",
-        expense_date="2026-06-15",
-    )
-    taxi = await add_expense(
-        amount="15.00",
-        category_id=transport["id"],
-        tag_ids=[urgent["id"]],
-        description="taxi ride",
-        expense_date="2026-06-20",
-    )
-    lunch = await add_expense(
-        amount="8.00",
-        category_id=food["id"],
-        tag_ids=[weekly["id"], urgent["id"]],
-        description="lunch",
-        expense_date="2026-07-01",
-    )
-
-    return {
-        "food_id": food["id"],
-        "transport_id": transport["id"],
-        "weekly_id": weekly["id"],
-        "urgent_id": urgent["id"],
-        "groceries_id": groceries["id"],
-        "taxi_id": taxi["id"],
-        "lunch_id": lunch["id"],
-    }
-
-
 @pytest.mark.asyncio
 async def test_list_expenses_default_pagination(integration_client, expense_dataset) -> None:
     """EC-P1 valid: default page returns all items sorted by date desc."""
@@ -151,6 +105,51 @@ async def test_list_expenses_invalid_sort_returns_422(integration_client, expens
 
 
 TEST_USER_ID = "00000000-0000-4000-8000-000000000001"
+
+
+@pytest.mark.asyncio
+async def test_list_expenses_sql_query_count_bounded(
+    integration_client,
+    engine,
+    expense_dataset,
+) -> None:
+    """EC-P1: list page loads relations without N+1 (count + page + tag batch)."""
+    from app.core.deps import get_sql_count, reset_sql_count
+    from app.core.sql_counter import attach_sql_counter
+
+    attach_sql_counter(engine.sync_engine)
+    reset_sql_count()
+
+    response = await integration_client.get("/internal/v1/expenses?size=50")
+    assert response.status_code == 200
+    assert len(response.json()["items"]) >= 3
+
+    sql_queries = get_sql_count()
+    assert sql_queries <= 4, f"expected bounded queries for list page, got {sql_queries}"
+
+
+@pytest.mark.asyncio
+async def test_get_expense_sql_query_count_bounded(
+    integration_client,
+    engine,
+    expense_dataset,
+) -> None:
+    """EC-P1: expense detail loads relations without N+1."""
+    from app.core.deps import get_sql_count, reset_sql_count
+    from app.core.sql_counter import attach_sql_counter
+
+    attach_sql_counter(engine.sync_engine)
+    reset_sql_count()
+
+    expense_id = expense_dataset["groceries_id"]
+    response = await integration_client.get(f"/internal/v1/expenses/{expense_id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["category"]["name"] == "Food"
+    assert body["tags"]
+
+    sql_queries = get_sql_count()
+    assert sql_queries <= 2, f"expected bounded queries for expense detail, got {sql_queries}"
 
 
 @pytest.mark.asyncio

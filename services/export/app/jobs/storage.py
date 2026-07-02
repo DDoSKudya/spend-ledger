@@ -1,6 +1,5 @@
-from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import Any
 from uuid import UUID, uuid4
 
 import redis
@@ -9,26 +8,6 @@ from app.jobs.schemas import ExportFilters, ExportFormat, JobRecord, JobStatus
 
 JOB_KEY_PREFIX = "export:job:"
 JOB_TTL_SECONDS = 60 * 60 * 24 * 7
-
-
-class JobStoreProtocol(Protocol):
-    def close(self) -> None: ...
-
-    def create(
-        self,
-        *,
-        user_id: UUID,
-        export_format: ExportFormat,
-        filters: ExportFilters,
-    ) -> JobRecord: ...
-
-    def get(self, job_id: UUID) -> JobRecord | None: ...
-
-    def mark_processing(self, job_id: UUID) -> JobRecord | None: ...
-
-    def mark_done(self, job_id: UUID, file_path: str) -> JobRecord | None: ...
-
-    def mark_failed(self, job_id: UUID, error_message: str) -> JobRecord | None: ...
 
 
 def _new_pending_job(
@@ -47,7 +26,7 @@ def _new_pending_job(
     )
 
 
-class JobStoreBase(ABC):
+class JobStoreBase:
     def create(
         self,
         *,
@@ -91,11 +70,11 @@ class JobStoreBase(ABC):
         self._write(updated)
         return updated
 
-    @abstractmethod
-    def get(self, job_id: UUID) -> JobRecord | None: ...
+    def get(self, job_id: UUID) -> JobRecord | None:
+        raise NotImplementedError
 
-    @abstractmethod
-    def _write(self, record: JobRecord) -> None: ...
+    def _write(self, record: JobRecord) -> None:
+        raise NotImplementedError
 
 
 class JobStore(JobStoreBase):

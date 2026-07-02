@@ -6,8 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from app.categories.models import Category
 from app.categories.schemas import CategoryCreate, CategoryRead, CategoryUpdate
 from app.core.exceptions import CategoryInUseError, DuplicateNameError, NotFoundError
-from app.core.session import get_session
 from app.expenses.models import Expense
+from spend_ledger_common.session import get_session
 
 
 async def list_categories(user_id: UUID) -> list[CategoryRead]:

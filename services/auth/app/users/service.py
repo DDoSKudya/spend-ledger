@@ -23,9 +23,9 @@ from app.core.security import (
     hash_refresh_token,
     verify_password,
 )
-from app.core.session import get_session
 from app.users.models import RefreshToken, User
 from app.users.schemas import LoginRequest, RegisterRequest, TokenResponse, UserRead
+from spend_ledger_common.session import get_session
 
 
 async def register_user(data: RegisterRequest) -> UserRead:

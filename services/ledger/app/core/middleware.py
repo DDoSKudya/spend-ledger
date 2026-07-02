@@ -1,37 +1,19 @@
 import time
 from collections.abc import Awaitable, Callable
-from uuid import uuid4
 
 import structlog
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
+from fastapi import FastAPI, Request
 from starlette.responses import Response
 
 from app.core.config import settings
 from app.core.deps import get_sql_count, reset_sql_count
-from app.core.session import session_scope
 
-SERVICE_NAME = "ledger"
 HIGH_SQL_QUERY_THRESHOLD = 10
 
 
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
-        request_id = request.headers.get("X-Request-Id", str(uuid4()))
-        structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(request_id=request_id, service=SERVICE_NAME)
-        response = await call_next(request)
-        response.headers["X-Request-Id"] = request_id
-        return response
-
-
-class SqlProfileMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
+def register_sql_profile_middleware(app: FastAPI) -> None:
+    @app.middleware("http")
+    async def sql_profile_middleware(
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
@@ -55,9 +37,9 @@ class SqlProfileMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class PyInstrumentMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
+def register_pyinstrument_middleware(app: FastAPI) -> None:
+    @app.middleware("http")
+    async def pyinstrument_middleware(
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
@@ -77,15 +59,3 @@ class PyInstrumentMiddleware(BaseHTTPMiddleware):
                 path=request.url.path,
                 profile=profiler.output_text(unicode=False, color=False),
             )
-
-
-class DbSessionMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
-        if request.url.path in {"/health", "/ready"}:
-            return await call_next(request)
-        async with session_scope(request.app.state.session_factory):
-            return await call_next(request)

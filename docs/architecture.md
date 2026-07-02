@@ -178,6 +178,28 @@ In dev, `frontend-dev` registers a network alias `frontend` so nginx can reach V
 
 Compose healthchecks use `/ready`. The BFF `/ready` fails with `503 service_unavailable` if auth, ledger, or (when `EXPORT_ENABLED=true`) export is down.
 
+## Shared backend library
+
+Cross-service Python code lives in `packages/spend-ledger-common/` (`spend_ledger_common`):
+
+| Module | Purpose |
+|--------|---------|
+| `logging.py` | structlog JSON setup with `merge_contextvars` |
+| `session.py` | `get_session()`, `session_scope()` via ContextVar |
+| `database.py` | `create_async_db_engine()`, `create_session_factory()` |
+| `middleware.py` | `@app.middleware("http")` registrars: request ID, request log, DB session |
+| `deps.py` | `make_get_user_id()` factory for `X-User-Id` |
+
+Middleware is registered with factory functions (`register_request_id_middleware(app, service_name="…")`) instead of `BaseHTTPMiddleware` subclasses. Registration order matches the previous stack: outermost middleware registered last (e.g. auth: log → request ID → DB session).
+
+**Request ID flow:** middleware binds `request_id` and `service` into structlog contextvars, stores ID on `request.state.request_id`, echoes it in the `X-Request-Id` response header. BFF proxy forwards `request.state.request_id` to downstream services. Export Celery tasks receive `request_id` and bind it in the worker process.
+
+## SQL profiling and N+1 (ledger)
+
+Expense list/detail use `joinedload(Expense.category)` + `selectinload(Expense.tags)` — O(1) SQL vs page size, not N+1.
+
+When `PROFILE_REQUESTS=true`, ledger attaches a SQL counter (`sql_counter.py`) and `SqlProfileMiddleware` logs `sql_queries` per request; warns above 10 queries. Integration test `test_list_expenses_sql_query_count_bounded` asserts ≤ 4 queries for a list page.
+
 ## Stack
 
 | Layer | Technology |
@@ -246,6 +268,8 @@ spend-ledger/
 │   ├── docker/          Shared Dockerfiles
 │   ├── nginx/           Reverse proxy config
 │   └── certs/           TLS certificates (optional)
+├── packages/
+│   └── spend-ledger-common/  Shared Python library (session, middleware, logging)
 ├── scripts/             Contract validation, dev cert generation
 ├── services/
 │   ├── bff/             Public API gateway
