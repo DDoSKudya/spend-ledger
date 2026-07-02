@@ -1,31 +1,39 @@
-<script setup>
-defineProps({
-  type: {
-    type: String,
-    default: "button",
-  },
-  variant: {
-    type: String,
-    default: "primary",
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-});
+<script setup lang="ts">
+import { computed } from "vue";
 
-const variants = {
-  primary: "bg-slate-800 text-white hover:bg-slate-700",
-  secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-  danger: "bg-red-600 text-white hover:bg-red-500",
-};
+import type { ButtonVariant } from "@/types/models";
+
+const props = withDefaults(
+  defineProps<{
+    type?: "button" | "submit" | "reset";
+    variant?: ButtonVariant;
+    disabled?: boolean;
+    block?: boolean;
+  }>(),
+  {
+    type: "button",
+    variant: "primary",
+    disabled: false,
+    block: false,
+  },
+);
+
+const variantClass = computed(() => {
+  const map: Record<ButtonVariant, string> = {
+    primary: "btn--primary",
+    secondary: "btn--secondary",
+    ghost: "btn--ghost",
+    danger: "btn--danger",
+  };
+  return map[props.variant];
+});
 </script>
 
 <template>
   <button
     :type="type"
-    class="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-    :class="variants[variant]"
+    class="btn"
+    :class="[variantClass, block && 'btn--block']"
     :disabled="disabled"
   >
     <slot />

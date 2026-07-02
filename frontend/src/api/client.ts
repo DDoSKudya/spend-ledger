@@ -1,14 +1,19 @@
 import { ofetch } from "ofetch";
 
 import { getErrorMessage } from "@/api/errors";
+import type {
+  ApiRequestOptions,
+  ConfigureApiOptions,
+  FetchErrorLike,
+} from "@/types/api";
 
-let getAccessToken = () => null;
-let refreshSession = async () => {
+let getAccessToken = (): string | null => null;
+let refreshSession = async (): Promise<void> => {
   throw new Error("Auth is not configured");
 };
-let clearSession = () => {};
+let clearSession = (): void => {};
 
-export function configureApi({ getToken, refresh, onFailure }) {
+export function configureApi({ getToken, refresh, onFailure }: ConfigureApiOptions): void {
   getAccessToken = getToken;
   refreshSession = refresh;
   clearSession = onFailure ?? (() => {});
@@ -23,27 +28,27 @@ const rawApi = ofetch.create({
       return;
     }
 
-    options.headers = {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    };
+    const headers = new Headers(options.headers as HeadersInit);
+    headers.set("Authorization", `Bearer ${token}`);
+    options.headers = headers;
   },
 });
 
-export async function apiPublic(url, options = {}) {
-  return rawApi(url, options);
+export async function apiPublic<T>(url: string, options: ApiRequestOptions = {}): Promise<T> {
+  return rawApi<T>(url, options);
 }
 
-export async function api(url, options = {}) {
+export async function api<T>(url: string, options: ApiRequestOptions = {}): Promise<T> {
   try {
-    return await rawApi(url, options);
+    return await rawApi<T>(url, options);
   } catch (error) {
-    const shouldRetry = error?.status === 401 && !options._retry && getAccessToken() !== null;
+    const fetchError = error as FetchErrorLike;
+    const shouldRetry = fetchError.status === 401 && !options._retry && getAccessToken() !== null;
 
     if (shouldRetry) {
       try {
         await refreshSession();
-        return api(url, { ...options, _retry: true });
+        return api<T>(url, { ...options, _retry: true });
       } catch {
         clearSession();
       }
@@ -53,7 +58,7 @@ export async function api(url, options = {}) {
   }
 }
 
-export async function apiBlob(url, options = {}) {
+export async function apiBlob(url: string, options: ApiRequestOptions = {}): Promise<Blob> {
   const token = getAccessToken();
   const response = await fetch(`/api/v1${url}`, {
     credentials: "include",

@@ -1,119 +1,93 @@
-<script setup>
+<script setup lang="ts">
 import BaseButton from "@/components/ui/BaseButton.vue";
 import BaseInput from "@/components/ui/BaseInput.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
+import TagPill from "@/components/ui/TagPill.vue";
+import type { Category, ExpenseFilters, Tag } from "@/types/models";
 import { toggleItem } from "@/utils/selection";
 
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true,
-  },
-  categories: {
-    type: Array,
-    default: () => [],
-  },
-  tags: {
-    type: Array,
-    default: () => [],
-  },
-});
+const filters = defineModel<ExpenseFilters>({ required: true });
 
-const emit = defineEmits(["update:modelValue", "apply", "reset"]);
+defineProps<{
+  categories?: Category[];
+  tags?: Tag[];
+}>();
 
-function update(field, value) {
-  emit("update:modelValue", { ...props.modelValue, [field]: value });
+const emit = defineEmits<{
+  apply: [];
+  reset: [];
+}>();
+
+function toggleTag(tagId: string): void {
+  filters.value.tag_ids = toggleItem(filters.value.tag_ids, tagId);
 }
-
-function toggleTag(tagId) {
-  update("tag_ids", toggleItem(props.modelValue.tag_ids, tagId));
-}
-
-const sortOptions = [
-  { value: "expense_date:desc", label: "Date (newest)" },
-  { value: "expense_date:asc", label: "Date (oldest)" },
-  { value: "amount:desc", label: "Amount (high)" },
-  { value: "amount:asc", label: "Amount (low)" },
-];
 </script>
 
 <template>
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <BaseInput
-      :model-value="modelValue.search"
-      label="Search"
-      placeholder="Description"
-      @update:model-value="update('search', $event)"
-    />
+  <details
+    class="filters-panel lg:contents"
+    open
+  >
+    <summary class="lg:hidden">
+      Filters
+    </summary>
 
-    <BaseSelect
-      :model-value="modelValue.category_id"
-      label="Category"
-      @update:model-value="update('category_id', $event)"
-    >
-      <option value="">
-        All categories
-      </option>
-      <option
-        v-for="category in categories"
-        :key="category.id"
-        :value="category.id"
+    <div class="stack">
+      <BaseInput
+        v-model="filters.search"
+        label="Search"
+        placeholder="Description"
+      />
+      <BaseSelect
+        v-model="filters.category_id"
+        label="Category"
       >
-        {{ category.name }}
-      </option>
-    </BaseSelect>
-
-    <BaseInput
-      :model-value="modelValue.date_from"
-      label="From"
-      type="date"
-      @update:model-value="update('date_from', $event)"
-    />
-
-    <BaseInput
-      :model-value="modelValue.date_to"
-      label="To"
-      type="date"
-      @update:model-value="update('date_to', $event)"
-    />
-
-    <BaseSelect
-      :model-value="modelValue.sort"
-      label="Sort"
-      :options="sortOptions"
-      @update:model-value="update('sort', $event)"
-    />
-
-    <div class="sm:col-span-2">
-      <p class="mb-2 text-sm text-slate-700">
-        Tags (any)
-      </p>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="tag in tags"
-          :key="tag.id"
-          type="button"
-          class="rounded-full border px-3 py-1 text-sm transition"
-          :class="modelValue.tag_ids.includes(tag.id)
-            ? 'border-slate-800 bg-slate-800 text-white'
-            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
-          @click="toggleTag(tag.id)"
+        <option value="">
+          All categories
+        </option>
+        <option
+          v-for="category in categories"
+          :key="category.id"
+          :value="category.id"
         >
-          {{ tag.name }}
-        </button>
+          {{ category.name }}
+        </option>
+      </BaseSelect>
+      <BaseInput
+        v-model="filters.date_from"
+        label="From"
+        type="date"
+      />
+      <BaseInput
+        v-model="filters.date_to"
+        label="To"
+        type="date"
+      />
+
+      <div>
+        <span class="field-label">Tags</span>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <TagPill
+            v-for="tag in tags"
+            :key="tag.id"
+            :label="tag.name"
+            :active="filters.tag_ids.includes(tag.id)"
+            @toggle="toggleTag(tag.id)"
+          />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <BaseButton @click="emit('apply')">
+          Apply
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          @click="emit('reset')"
+        >
+          Reset
+        </BaseButton>
       </div>
     </div>
-
-    <div class="flex items-end gap-2 sm:col-span-2">
-      <BaseButton @click="emit('apply')">
-        Apply filters
-      </BaseButton>
-      <BaseButton
-        variant="secondary"
-        @click="emit('reset')"
-      >
-        Reset
-      </BaseButton>
-    </div>
-  </div>
+  </details>
 </template>

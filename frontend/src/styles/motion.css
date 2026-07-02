@@ -1,0 +1,33 @@
+/* Content swap — loading / empty / list (Cadence scheme-body-swap) */
+
+.motion-body-enter-active {
+  transition: opacity var(--motion-medium) var(--ease-soft);
+}
+
+.motion-body-leave-active {
+  transition: opacity var(--motion-fast) var(--ease-soft);
+}
+
+.motion-body-enter-from,
+.motion-body-leave-to {
+  opacity: 0;
+}
+
+/* Inline alerts */
+.motion-alert-enter-active {
+  transition:
+    opacity var(--motion-medium) var(--ease-soft),
+    transform var(--motion-medium) var(--ease-emphasis);
+}
+
+.motion-alert-leave-active {
+  transition:
+    opacity var(--motion-fast) var(--ease-soft),
+    transform var(--motion-fast) var(--ease-soft);
+}
+
+.motion-alert-enter-from,
+.motion-alert-leave-to {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}

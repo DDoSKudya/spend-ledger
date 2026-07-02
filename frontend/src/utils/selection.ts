@@ -1,4 +1,4 @@
-export function toggleItem(list, item) {
+export function toggleItem<T>(list: T[], item: T): T[] {
   const selected = new Set(list);
 
   if (selected.has(item)) {

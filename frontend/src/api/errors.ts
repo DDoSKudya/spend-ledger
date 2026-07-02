@@ -1,4 +1,6 @@
-const KNOWN_ERROR_CODES = {
+import type { ApiErrorBody, FetchErrorLike } from "@/types/api";
+
+const KNOWN_ERROR_CODES: Record<string, string> = {
   invalid_credentials: "Invalid email or password",
   email_already_exists: "An account with this email already exists",
   unauthorized: "Unauthorized",
@@ -19,9 +21,10 @@ const KNOWN_ERROR_CODES = {
   invalid_upstream_response: "Unexpected server response",
 };
 
-export function getErrorMessage(error, fallback = "Something went wrong") {
-  const detail = error?.data?.detail;
-  const code = error?.data?.code;
+export function getErrorMessage(error: unknown, fallback = "Something went wrong"): string {
+  const fetchError = error as FetchErrorLike;
+  const detail = fetchError.data?.detail;
+  const code = fetchError.data?.code;
 
   if (typeof detail === "string" && detail) {
     return detail;
@@ -41,3 +44,5 @@ export function getErrorMessage(error, fallback = "Something went wrong") {
 
   return fallback;
 }
+
+export type { ApiErrorBody, FetchErrorLike };

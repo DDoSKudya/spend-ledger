@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Spend Ledger">
+  <rect width="32" height="32" rx="8" fill="#ECF8F5"/>
+  <rect x="5" y="4" width="22" height="24" rx="5" fill="#5FB9A8"/>
+  <path d="M9.5 10.5h13M9.5 14.5h10M9.5 18.5h7" stroke="#fff" stroke-width="1.75" stroke-linecap="round"/>
+  <circle cx="23" cy="23" r="5.5" fill="#4DA896"/>
+  <path d="M21.25 23h3.5M23 21.25v3.5" stroke="#fff" stroke-width="1.35" stroke-linecap="round"/>
+</svg>

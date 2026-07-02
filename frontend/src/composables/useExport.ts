@@ -1,19 +1,25 @@
-import { onUnmounted, ref } from "vue";
+import { getCurrentInstance, onUnmounted, ref } from "vue";
 
 import { api, apiBlob } from "@/api/client";
+import type { ExportFilters, ExportJob } from "@/types/models";
 
 const TERMINAL_STATUSES = new Set(["done", "failed"]);
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_ATTEMPTS = 60;
 
+interface StartExportParams {
+  format: string;
+  filters: ExportFilters;
+}
+
 export function useExport() {
-  const job = ref(null);
+  const job = ref<ExportJob | null>(null);
   const loading = ref(false);
   const polling = ref(false);
-  let pollTimer = null;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
   let pollAttempts = 0;
 
-  function stopPolling() {
+  function stopPolling(): void {
     if (pollTimer !== null) {
       clearInterval(pollTimer);
       pollTimer = null;
@@ -22,15 +28,17 @@ export function useExport() {
     pollAttempts = 0;
   }
 
-  onUnmounted(stopPolling);
+  if (getCurrentInstance()) {
+    onUnmounted(stopPolling);
+  }
 
-  async function start({ format, filters }) {
+  async function start({ format, filters }: StartExportParams): Promise<void> {
     loading.value = true;
     stopPolling();
     job.value = null;
 
     try {
-      job.value = await api("/exports", {
+      job.value = await api<ExportJob>("/exports", {
         method: "POST",
         body: { format, filters },
       });
@@ -40,11 +48,11 @@ export function useExport() {
     }
   }
 
-  async function pollStatus(jobId) {
+  async function pollStatus(jobId: string): Promise<void> {
     polling.value = true;
     pollAttempts = 0;
 
-    const runPoll = async () => {
+    const runPoll = async (): Promise<boolean> => {
       pollAttempts += 1;
       if (pollAttempts > MAX_POLL_ATTEMPTS) {
         stopPolling();
@@ -52,13 +60,13 @@ export function useExport() {
       }
 
       try {
-        job.value = await api(`/exports/${jobId}`);
+        job.value = await api<ExportJob>(`/exports/${jobId}`);
       } catch (error) {
         stopPolling();
         throw error;
       }
 
-      if (TERMINAL_STATUSES.has(job.value.status)) {
+      if (job.value && TERMINAL_STATUSES.has(job.value.status)) {
         stopPolling();
         return true;
       }
@@ -82,7 +90,7 @@ export function useExport() {
     });
   }
 
-  async function download(downloadUrl, jobId, format) {
+  async function download(downloadUrl: string | undefined, jobId: string, format: string): Promise<void> {
     const path = downloadUrl
       ? downloadUrl.replace(/^\/api\/v1/, "")
       : `/exports/${jobId}/download`;

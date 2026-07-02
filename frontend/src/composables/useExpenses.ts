@@ -1,19 +1,27 @@
 import { ref } from "vue";
 
 import { api } from "@/api/client";
+import type {
+  Expense,
+  ExpenseFilters,
+  ExpensePayload,
+  PaginatedExpenses,
+} from "@/types/models";
 
-const defaultFilters = () => ({
-  page: 1,
-  size: 20,
-  sort: "expense_date:desc",
-  category_id: "",
-  tag_ids: [],
-  date_from: "",
-  date_to: "",
-  search: "",
-});
+function defaultFilters(): ExpenseFilters {
+  return {
+    page: 1,
+    size: 20,
+    sort: "expense_date:desc",
+    category_id: "",
+    tag_ids: [],
+    date_from: "",
+    date_to: "",
+    search: "",
+  };
+}
 
-function buildQuery(filters) {
+function buildQuery(filters: ExpenseFilters): string {
   const params = new URLSearchParams();
   params.set("page", String(filters.page));
   params.set("size", String(filters.size));
@@ -39,16 +47,16 @@ function buildQuery(filters) {
 }
 
 export function useExpenses() {
-  const items = ref([]);
+  const items = ref<Expense[]>([]);
   const total = ref(0);
   const pages = ref(0);
   const loading = ref(false);
-  const filters = ref(defaultFilters());
+  const filters = ref<ExpenseFilters>(defaultFilters());
 
-  async function load() {
+  async function load(): Promise<void> {
     loading.value = true;
     try {
-      const data = await api(`/expenses?${buildQuery(filters.value)}`);
+      const data = await api<PaginatedExpenses>(`/expenses?${buildQuery(filters.value)}`);
       items.value = data.items;
       total.value = data.total;
       pages.value = data.pages;
@@ -59,27 +67,27 @@ export function useExpenses() {
     }
   }
 
-  async function create(payload) {
+  async function create(payload: ExpensePayload): Promise<void> {
     await api("/expenses", { method: "POST", body: payload });
     await load();
   }
 
-  async function update(id, payload) {
+  async function update(id: string, payload: ExpensePayload): Promise<void> {
     await api(`/expenses/${id}`, { method: "PUT", body: payload });
     await load();
   }
 
-  async function remove(id) {
+  async function remove(id: string): Promise<void> {
     await api(`/expenses/${id}`, { method: "DELETE" });
     await load();
   }
 
-  function setPage(page) {
+  function setPage(page: number): Promise<void> {
     filters.value.page = page;
     return load();
   }
 
-  function resetFilters() {
+  function resetFilters(): Promise<void> {
     filters.value = defaultFilters();
     return load();
   }

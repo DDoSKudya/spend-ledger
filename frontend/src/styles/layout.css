@@ -1,0 +1,235 @@
+.app {
+  display: flex;
+  height: 100%;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: var(--header-h);
+  padding: 0 1rem;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+
+@media (min-width: 768px) {
+  .app-header {
+    padding: 0 1.5rem;
+  }
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.app-brand__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.app-nav {
+  display: none;
+  flex: 1;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .app-nav {
+    display: flex;
+  }
+}
+
+.app-nav__link {
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease-soft), color var(--motion-fast) var(--ease-soft);
+}
+
+.app-nav__link:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.app-nav__link--active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.app-user {
+  display: none;
+  max-width: 12rem;
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .app-user {
+    display: block;
+  }
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-w);
+  min-height: 0;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding: 2rem 1.5rem 3rem;
+  }
+}
+
+.app-tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem calc(0.375rem + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+
+@media (min-width: 768px) {
+  .app-tabbar {
+    display: none;
+  }
+}
+
+.app-tabbar__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-decoration: none;
+  transition:
+    color var(--motion-fast) var(--ease-soft),
+    background var(--motion-fast) var(--ease-soft);
+}
+
+.app-tabbar__link--active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.view-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.view-head__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.view-head__meta {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.auth-page {
+  display: grid;
+  height: 100%;
+  height: 100dvh;
+  min-height: 0;
+  place-items: center;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 24rem;
+  padding: 2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.auth-panel__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+.auth-panel__title {
+  margin: 0 0 1.25rem;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.auth-panel__footer {
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.split-layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .split-layout {
+    grid-template-columns: 18rem 1fr;
+    align-items: start;
+  }
+
+  .split-layout--reverse {
+    grid-template-columns: 1fr 18rem;
+  }
+}
